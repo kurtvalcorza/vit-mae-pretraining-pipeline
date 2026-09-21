@@ -1,0 +1,30 @@
+{
+  "format": "dimer_hf_snapshot",
+  "formatVersion": 1,
+  "modelKey": "vit-mae-base",
+  "modelId": "facebook/vit-mae-base",
+  "revision": "25b184bea5538bf5c4c852c79d221195fdd2778d",
+  "files": [
+    {
+      "path": "README.md",
+      "bytes": 2968,
+      "sha256": "16ae81a13455621be2a1e323fcef6824663c011ebd4e75ead22c5b8f13b9d2c5"
+    },
+    {
+      "path": "config.json",
+      "bytes": 676,
+      "sha256": "1f7a507e1f7f63a262c5500b86470c3b22ff1a9e42de81bbba27105396572dae"
+    },
+    {
+      "path": "preprocessor_config.json",
+      "bytes": 217,
+      "sha256": "a250969c94afba52d785a0e08dd36e13aeda97c4dd2b7fd0d24b457288536cea"
+    },
+    {
+      "path": "model.safetensors",
+      "bytes": 447670680,
+      "sha256": "479dcef4bd5df06259399027b789f21e9d9a1b79f37155a64176d55bc26fdae8"
+    }
+  ],
+  "totalBytes": 447674541
+}
