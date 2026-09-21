@@ -15,7 +15,7 @@ The wrapper code in this repository is MIT licensed. The model weights retain Me
 
 ## Status
 
-**Candidate.** The inference contract, the adaptation contract and the real pinned checkpoint have been exercised on the build workstation's CPU (the unit and model-backed suites, and the default tutorial path through the package API, recorded in `docs/release-verification.md`). The `E2E` standalone tutorial has not yet executed top-to-bottom in a clean hosted runtime; until that record exists the status stays Candidate. Production HTTP serving / DIMER worker packaging remains a separate serving-readiness milestone.
+**Release-grade.** The inference contract, the adaptation contract and the real pinned checkpoint have been exercised on the build workstation's CPU (the unit and model-backed suites, the default tutorial path through the package API and the generated notebook itself) and — for the `E2E` standalone tutorial at blob `06bc11b5` — in a clean Kaggle Tesla T4 runtime on 2026-09-21 (recorded in `docs/release-verification.md`). A later notebook revision returns to Candidate until a clean-runtime execution of that exact blob is recorded. Production HTTP serving / DIMER worker packaging remains a separate serving-readiness milestone.
 
 ## Capabilities
 
@@ -85,7 +85,7 @@ The default path runs on CPU and uses CUDA automatically when present (about fou
 
 ## Release status
 
-**Candidate** — the `E2E` notebook has been executed on the build workstation's CPU through the package API (`docs/release-verification.md`) but not yet top-to-bottom in a clean hosted runtime. Static and unit checks — including the standalone generator parity checks — are necessary but are not the evidence; a recorded clean-runtime execution of the exact notebook blob is what promotes the status, and a later change to the carried modules or the notebook returns it to Candidate until re-verified.
+**Release-grade** — the `E2E` notebook blob `06bc11b5` (committed at `eb708a9`) executed top-to-bottom in a clean Kaggle Tesla T4 runtime on 2026-09-21 (14/14 ok (1 restart after install cell), 366.8 s); the record is in `docs/release-verification.md` and `STATUS.md`. Static and unit checks — including the standalone generator parity checks — are necessary but were never the evidence; the hosted run is. A later change to the carried modules or the notebook returns the status to Candidate until re-verified.
 
 ## Loss semantics
 

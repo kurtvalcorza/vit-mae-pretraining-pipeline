@@ -232,7 +232,10 @@ TEMPLATE = {
                 "`sample-sanity` — plumbing evidence, not a measurement; whether the model reconstructs *well* is what Section 6 "
                 "measures on 96 photographs.\n\n"
                 "Look for: the same seed hiding the same 147 patches twice, a different seed hiding different ones, and the "
-                "pipeline's mean masked MSE equal to the model's own `loss` — the pipeline computes what the checkpoint was trained on."
+                "pipeline's mean masked MSE equal to the model's own `loss` — the pipeline computes what the checkpoint was trained on. "
+                "On these flat drawings the hidden patches are trivial to fill (masked MSE about 0.0005–0.02 in the build record) "
+                "while the visible ones are not (about 0.55–0.64): the decoder was never trained on the patches the encoder saw, "
+                "which is why the visible-patch error is reported but never read as quality."
             ),
             "code": (
                 "SAMPLE_DIGESTS = {{  # examples/sample-data/SHA256SUMS\n"

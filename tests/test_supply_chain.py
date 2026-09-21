@@ -16,7 +16,7 @@ from vit_mae_pipeline.config import (
 
 def test_model_identity_and_revision_are_explicit():
     assert MODEL_ID == "facebook/vit-mae-base"
-    assert MODEL_REVISION == "b078df89e446d623010d890864d4207fe6399f61"
+    assert MODEL_REVISION == "25b184bea5538bf5c4c852c79d221195fdd2778d"
     assert MODEL_FILENAME == "model.safetensors"
     assert not any(path.endswith(".bin") for path in ALLOWED_CHECKPOINT_FILES)
 
