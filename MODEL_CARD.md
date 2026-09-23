@@ -57,7 +57,7 @@ The primary intended uses of this pipeline comprise six technical capabilities:
 4. Linear-probe evaluation (`ViTMAEPipeline.fit_probe`, `evaluate`, `classify`): a standardised multinomial logistic-regression head on the frozen features of a labelled set, reporting accuracy, macro F1 and a per-class breakdown beside a k-NN vote on the same features.
 5. Bounded continuation of pre-training (`ViTMAEPipeline.adapt`): continuing the masked-autoencoding objective on the decoder, the last encoder blocks and the encoder LayerNorm over a photograph set, labels unused, with validation-MSE epoch selection.
 6. Adapter export and reload (`save_artifact`, `from_artifact`): exporting the trained tensors and the probe head as safetensors with a manifest and reloading them onto a freshly verified base with verified parity.
-Target application domains include representation learning for downstream vision heads, domain-adaptive pre-training on unlabelled imagery from an unfamiliar domain, and feature indexing within the DIMER platform.
+Target application domains include representation learning for downstream vision heads, domain-adaptive pre-training on unlabelled imagery from an unfamiliar domain, and feature indexing.
 
 ###### Primary Intended Users
 
