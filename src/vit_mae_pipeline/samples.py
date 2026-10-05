@@ -3916,6 +3916,37 @@ def observer_overlap(splits: Mapping[str, Sequence[Mapping[str, Any]]]) -> dict[
     }
 
 
+def _split_counts(per_label: int, val_fraction: float, test_fraction: float) -> tuple[int, int, int]:
+    """(train, validation, test) that `split_dataset` cuts from one label holding `per_label` photographs."""
+    n_test = max(1, round(per_label * test_fraction))
+    n_val = round(per_label * val_fraction)
+    return per_label - n_test - n_val, n_val, n_test
+
+
+def min_byod_records(
+    n_labels: int = 2, *, val_fraction: float = 0.15, test_fraction: float = 0.2
+) -> dict[str, int]:
+    """The smallest balanced dataset `split_dataset` accepts with `n_labels` labels and these fractions.
+
+    Every label needs at least one training, one test and (when `val_fraction` > 0) one validation photograph,
+    and the training split needs MIN_RECORDS in total. With the default fractions two labels need 12
+    photographs (6 per label, split 4 / 1 / 1), three need 15 (5 per label), and four or more need 4 per
+    label."""
+    if isinstance(n_labels, bool) or not isinstance(n_labels, int) or n_labels < MIN_CLASSES:
+        raise ValueError(f"n_labels must be an int >= {MIN_CLASSES}")
+    for per_label in range(1, MAX_RECORDS + 1):
+        train, val, test = _split_counts(per_label, val_fraction, test_fraction)
+        if train >= 1 and (val >= 1 or val_fraction == 0) and train * n_labels >= MIN_RECORDS:
+            return {
+                "per_label": per_label,
+                "total": per_label * n_labels,
+                "train_per_label": train,
+                "validation_per_label": val,
+                "test_per_label": test,
+            }
+    raise ValueError("no dataset size satisfies these fractions")
+
+
 def split_dataset(
     records: Sequence[Mapping[str, Any]],
     *,
@@ -3943,16 +3974,32 @@ def split_dataset(
     for label in sorted(by_label):
         pool = by_label[label]
         rng.shuffle(pool)
-        n_test = max(1, round(len(pool) * test_fraction))
-        n_val = round(len(pool) * val_fraction)
+        _n_train, n_val, n_test = _split_counts(len(pool), val_fraction, test_fraction)
         splits["test"].extend(pool[:n_test])
         splits["validation"].extend(pool[n_test : n_test + n_val])
         splits["train"].extend(pool[n_test + n_val :])
     for part in splits.values():
         rng.shuffle(part)
+    need = min_byod_records(
+        max(len(by_label), MIN_CLASSES), val_fraction=val_fraction, test_fraction=test_fraction
+    )
+    advice = (
+        f"with {len(by_label)} labels and these split fractions supply at least {need['total']} distinct "
+        f"photographs, {need['per_label']} per label"
+    )
+    for part in ("train", "validation") if val_fraction > 0 else ("train",):
+        present = {r["label"] for r in splits[part]}
+        starved = sorted(label for label in by_label if label not in present)
+        if starved:
+            raise ValueError(
+                f"split leaves no {part} photograph for labels {starved[:5]} "
+                f"({', '.join(f'{k}: {len(by_label[k])}' for k in starved[:5])} distinct photographs); "
+                f"{advice}"
+            )
     if len(splits["train"]) < MIN_RECORDS:
         raise ValueError(
-            f"split leaves {len(splits['train'])} training records; at least {MIN_RECORDS} are required"
+            f"split leaves {len(splits['train'])} training records; at least {MIN_RECORDS} are required "
+            f"({advice})"
         )
     return splits
 
@@ -3962,28 +4009,60 @@ def load_byod_dataset(path: str | Path) -> list[dict[str, Any]]:
     `label`) beside the image files; images are decoded, never extracted to disk."""
     source = Path(path)
     if source.is_dir():
-        table = (source / "labels.csv").read_text(encoding="utf-8")
+        if not (source / "labels.csv").is_file():
+            raise ValueError("BYOD folder must contain labels.csv")
+        table = (source / "labels.csv").read_text(encoding="utf-8-sig")
         loader = lambda name: Image.open(source / name)  # noqa: E731
     elif source.is_file() and source.suffix.lower() == ".zip":
         archive = zipfile.ZipFile(source)
-        members = {Path(n).name: n for n in archive.namelist()}
+        names = [
+            n
+            for n in archive.namelist()
+            if not n.endswith("/")
+            and not any(part == "__MACOSX" or part.startswith(".") for part in Path(n).parts)
+        ]
+        members = {Path(n).name: n for n in names}
         if "labels.csv" not in members:
             raise ValueError("BYOD zip must contain labels.csv")
-        table = archive.read(members["labels.csv"]).decode("utf-8")
+        table = archive.read(members["labels.csv"]).decode("utf-8-sig")
         loader = lambda name: Image.open(io.BytesIO(archive.read(members[name])))  # noqa: E731
     else:
-        raise ValueError(
-            "BYOD datasets must be a directory or a .zip holding labels.csv and the image files"
-        )
-    rows = list(csv.DictReader(io.StringIO(table)))
-    missing = {"id", "file", "label"} - set(rows[0].keys() if rows else set())
+        raise ValueError("BYOD datasets must be a directory or a .zip holding labels.csv and the image files")
+    reader = csv.DictReader(io.StringIO(table))
+    missing = {"id", "file", "label"} - set(reader.fieldnames or [])
     if missing:
-        raise ValueError(f"labels.csv is missing columns {sorted(missing)}")
+        raise ValueError(f"labels.csv is missing columns {sorted(missing)} (it needs id, file, label)")
+    rows = list(reader)
+    if not rows:
+        raise ValueError("labels.csv has no data rows: add one row per photograph (id, file, label)")
     out = []
-    for row in rows:
-        image = loader(row["file"])
-        image.load()
-        out.append({"id": row["id"], "image": image.convert("RGB"), "label": row["label"]})
+    for line, row in enumerate(rows, start=2):  # line 1 is the header
+        rid, name, label = ((row.get(k) or "").strip() for k in ("id", "file", "label"))
+        where = f"labels.csv line {line} (file {name!r})"
+        if not _ID_RE.match(rid):
+            raise ValueError(f"{where}: id {rid!r} must match {_ID_RE.pattern}")
+        if not _LABEL_RE.match(label):
+            raise ValueError(
+                f"{where}: label {label!r} must be 1..{MAX_LABEL_CHARS} plain characters "
+                "(letters, digits, space and _ . : -)"
+            )
+        try:
+            image = loader(name)
+            if max(image.size) > MAX_IMAGE_SIDE:
+                raise ValueError(
+                    f"{where}: image side {max(image.size)} px is over MAX_IMAGE_SIDE={MAX_IMAGE_SIDE}"
+                )
+            image.load()
+        except (KeyError, FileNotFoundError, IsADirectoryError):
+            raise ValueError(
+                f"{where}: that image file is not in the dataset; every labels.csv row must name "
+                "an image file stored beside labels.csv"
+            ) from None
+        except ValueError:
+            raise
+        except (OSError, SyntaxError, Image.DecompressionBombError) as exc:
+            raise ValueError(f"{where}: Pillow cannot decode the image ({exc})") from None
+        out.append({"id": rid, "image": image.convert("RGB"), "label": label})
     return out
 
 

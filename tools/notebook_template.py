@@ -30,6 +30,20 @@ TEMPLATE = {
     "notebook_name": "vit_mae_pretraining_colab.ipynb",
     "profile": "E2E",
     "mode": "GUIDED",
+    "isolated_runtime": True,
+    "infrastructure_labels": True,
+    # The fleet's uv isolated-environment mechanism (bioclip2-biodiversity-pipeline): managed CPython, a size- and
+    # SHA-256-verified uv wheel, and a lock compiled from the pyproject pins with
+    # `uv pip compile pyproject.toml --python-version 3.12 --python-platform x86_64-manylinux_2_28 --generate-hashes
+    # --only-binary :all: -o tutorials/requirements-colab.lock.txt`.
+    "managed_python": "3.12.12",
+    "uv": {
+        "version": "0.12.15",
+        "url": "https://files.pythonhosted.org/packages/1e/fd/432451d732917c49152a291de3ef171aa6b0f1a22d39780fb2c1f085ca4c/uv-0.12.15-py3-none-manylinux_2_17_x86_64.manylinux2014_x86_64.whl",
+        "bytes": 20081404,
+        "sha256": "aee9802f46bae436bd91751bb33ddeb379ef1596b5c19df193219d545d244b60",
+    },
+    "lock": "tutorials/requirements-colab.lock.txt",
     "pipeline_class": "ViTMAEPipeline",
     "weights_key": "vit-mae-base",
     "modules": ["config.py", "model.py", "metrics.py", "samples.py", "pipeline.py", "provenance.py"],
@@ -67,7 +81,8 @@ TEMPLATE = {
     ],
     "capability": "masked-patch reconstruction (masked image modelling), mean-pooled encoder embeddings, a linear probe on those embeddings and bounded continuation of the masked-autoencoding objective on a photograph set, using the pinned `facebook/vit-mae-base` weights",
     "run_all": (
-        "Selecting **Run all** in a fresh supported runtime installs the pinned dependencies, stages and digest-verifies the "
+        "Selecting **Run all** in a fresh supported runtime builds an isolated environment from the hash-locked pins (nothing is "
+        "installed into the notebook's own Python, so no restart is needed and Run all completes in one pass), stages and digest-verifies the "
         "pinned `facebook/vit-mae-base` snapshot (a 448 MB `model.safetensors`; no pickle is opened anywhere), fetches "
         "the 360 pinned iNaturalist photographs from the project's open-data bucket (about 39 MB, each refused on any byte-size "
         "or SHA-256 mismatch), cuts them per species into 216 / 48 / 96 training, validation and test photographs, masks and "
@@ -83,9 +98,11 @@ TEMPLATE = {
         "runtime); a CUDA runtime is used automatically when present and finishes in a few minutes."
     ),
     "byod": (
-        "After the tutorial workflow completes, set `USE_BYOD = True` in Section 4 and re-run from that cell to upload one zip "
-        "holding a `labels.csv` (columns `id`, `file`, `label`) beside the image files — at least eight photographs over at "
-        "least two labels; the labels feed only the linear probe, the reconstruction objective never sees them. They pass "
+        "After the tutorial workflow completes, set `USE_BYOD = True` in Section 4 and either set `BYOD_PATH` to a zip or folder "
+        "in the runtime (Colab, Kaggle or Jupyter) or leave it empty to upload one zip in Colab, then choose **Run after** from "
+        "that cell (it first puts the model back to the pinned base) to supply a `labels.csv` (columns `id`, `file`, `label`) "
+        "beside the image files — at least **12 photographs for two labels** (6 per label), 15 for three, and 4 per label from "
+        "four labels up (`min_byod_records(n_labels)`); the labels feed only the linear probe, the reconstruction objective never sees them. They pass "
         "through the same validation, seeded stratified split, baselines, continuation, held-out evaluation, artifact export "
         "and reload-parity cells as the iNaturalist sample. The expected schema and the ceilings are stated in the "
         "Prerequisites and in Section 4, and uploaded files stay inside this runtime. BYOD is optional and never part of the "
@@ -103,7 +120,7 @@ TEMPLATE = {
         "patch tokens (the paper's own readout of representation quality) — and neither is calibrated or a human judgement.\n\n"
         "What this notebook adds to inference is **continuation of the pre-training objective on a photograph set**. The "
         "dataset is real: 360 CC0-licensed, research-grade iNaturalist photographs of six common North American birds "
-        "(**CC0 1.0**; four small sparrows, a junco and two finches, 60 per species, one per observer), pinned by photo id, "
+        "(**CC0 1.0**; three sparrows, a junco and two finches, 60 per species, one per observer), pinned by photo id, "
         "byte size and SHA-256 and fetched from the project's open-data bucket at run time. The honest question is narrow: does "
         "a bounded continuation of masked autoencoding — the decoder and the last two encoder blocks, on 216 photographs, "
         "with the epoch chosen on the validation masked MSE — move the reconstruction error on an image-disjoint test split, "
@@ -111,14 +128,22 @@ TEMPLATE = {
         "and does it move the probe against three **non-neural classifiers** (the **majority floor**, a **colour nearest "
         "neighbour** and a **k-NN on the same features**)? The build record's answer is that it barely does — the pre-trained "
         "model is already converged on natural photographs, and 216 more of them at a learning rate small enough not to hurt "
-        "move the held-out masked MSE from 0.2281 to 0.2280 — so what the notebook demonstrates is the adaptation "
-        "*contract* (bounded training, validation selection that never returns a worse epoch than the frozen model, an artifact "
+        "move the held-out mean masked MSE from 0.2281 to 0.2280 while the median rose from 0.1801 to 0.1827 — so what the "
+        "notebook demonstrates is the adaptation *contract* (bounded training, validation selection that never returns an "
+        "epoch worse than the frozen model *on the validation split* — the held-out error can still move either way — an artifact "
         "that reloads with verified parity) and how to read the numbers around it. Nothing here is a quality claim about your "
         "photographs: it is one seeded split of one sample.\n\n"
         "**Snapshot note:** the pinned revision ships `model.safetensors` (a 4-file manifest: model card, config, processor "
         "config and weights) — no pickle is opened anywhere in this notebook. Section 3 stages and digest-verifies those files before "
         "the processor or the model is constructed."
     ),
+    "guided": {
+        "opening": [
+            (
+                "**Who this notebook is for.** A learner who knows basic Python, has used Colab or Jupyter, and wants to see what a masked autoencoder does, how to read its reconstruction loss and its features honestly, and what continuing its pre-training on a small photograph set does — and does not — change. No prior experience with masked autoencoders or fine-tuning is assumed; each term is explained where it first matters and again in the **Glossary** at the end. CPU is adequate (about four minutes of model time); a GPU is faster.\n\n**Input → Model → Output.**\n\n| | Reconstruction | Representation | Bounded continuation |\n|---|---|---|---|\n| Input | one image (16..4,096 px), resized to 224 × 224, with 75 % of its 196 patches hidden by a seeded random mask | photographs with nothing hidden | unlabelled photographs (216 training and 48 validation in the sample) |\n| Model | ViT-MAE base: a 12-layer encoder over the visible patches and an 8-layer decoder that predicts the hidden ones | the encoder's mean-pooled patch tokens, read by a linear probe | the decoder and the last two encoder blocks trained on the model's own masked-patch loss; validation MSE chooses the epoch |\n| Output | a reconstruction, its masked and visible MSE and PSNR — the model's own objective, not a perceptual judgement | probe accuracy and macro F1 beside three non-neural classifiers | a safetensors adapter, and held-out reconstruction and probe numbers beside the frozen model |\n\n**How to use this notebook.** Choose a runtime (CPU works; a GPU is faster), then **Runtime → Run all**. Run all completes in one pass: Section 1 installs nothing into the notebook's own Python, so no restart is needed. Sections 1–3 are **infrastructure** — the isolated environment, the carried package (including the 360-photograph table) and the model snapshot — and their cells are collapsed; you may run them without studying them. The learning path starts in Section 4. Form fields (`# @param`) are the only values meant to be edited, and the defaults reproduce the recorded run. Before each principal result the notebook asks you to **Predict**; after it come **What to notice** and a collapsible **Check your reasoning** with a worked answer that names the run it quotes — the Kaggle T4 release run of 21 September 2026. Section 10 is a **change-one-thing experiment**, off by default. **Troubleshooting**, a **Glossary** and a **Conclusion** template are at the end. Writing your predictions down is optional.\n\n**Roadmap:** 1–3 infrastructure → 4 the photographs, validation and a stratified split *(evaluation practice)* → 5 masking and reconstruction through the inference contract *(core concept: what an MAE predicts)* → 6 two fills, three classifiers and the frozen model *(evaluation practice)* → 7 bounded continuation and validation selection *(core concept)* → 8 held-out evaluation, mean and median *(evaluation practice)* → 9 re-reconstruct, export and reload *(engineering)* → 10 change one thing (optional) → conclude."
+            )
+        ]
+    },
     "learning_objectives": (
         "install the pinned runtime; read what the carried package guarantees; stage and digest-verify the immutable "
         "upstream snapshot; fetch a digest-pinned labelled photograph set, validate it and split it per species without "
@@ -139,9 +164,10 @@ TEMPLATE = {
         "and any claim that six bird species stand in for your images. The repository exposes none of these."
     ),
     "prerequisites": [
-        "- **Runtime:** a fresh supported runtime (Google Colab or Jupyter, Python 3.12). The default path runs on CPU (float32) and uses CUDA automatically when available. CPU is slow but adequate: the build record measured about 4.4 s to reconstruct the 96 test photographs, 28.8 s to embed the 312 photographs and fit the probe, and 159.1 s for the 5 epochs of continuation (216 photographs per epoch through the encoder and decoder, the decoder and the last two encoder blocks training) including the per-epoch validation reconstruction, so the whole default path is about four minutes of model time on the build workstation's CPU with the snapshot and photographs already cached (a 2-vCPU hosted runtime will be several times slower); a hosted T4 finishes it in a few minutes. The pinned `torch==2.14.0` install and the 448 MB checkpoint are the large downloads of the run; the photographs add about 39 MB.",
+        "- **Learner:** basic Python and Colab or Jupyter familiarity; no prior experience with masked autoencoders or fine-tuning. The notebook explains masking, masked and visible MSE, PSNR, the linear probe, k-NN, validation selection and the adapter where they are first used; the Glossary repeats them.",
+        "- **Runtime:** a fresh supported **Linux x86_64** runtime (Google Colab, Kaggle or Linux Jupyter). Section 1 builds its own Python 3.12.12 environment from a hash-locked list of manylinux wheels, so the kernel's own Python version does not matter and nothing is installed into it. The default path runs on CPU (float32) and uses CUDA automatically when available. CPU is slow but adequate: the build record measured about 4.4 s to reconstruct the 96 test photographs, 28.8 s to embed the 312 photographs and fit the probe, and 159.1 s for the 5 epochs of continuation (216 photographs per epoch through the encoder and decoder, the decoder and the last two encoder blocks training) including the per-epoch validation reconstruction, so the whole default path is about four minutes of model time on the build workstation's CPU with the snapshot and photographs already cached (a 2-vCPU hosted runtime will be several times slower); a hosted T4 finishes it in a few minutes. The pinned `torch==2.14.0` install and the 448 MB checkpoint are the large downloads of the run; the photographs add about 39 MB.",
         "- **Knowledge:** basic Python and PIL; what a mean squared error and a PSNR are; what a masked autoencoder hides and predicts; what accuracy and macro F1 measure and why a linear probe is a readout of features rather than a product classifier.",
-        "- **Data contract:** records are `{id, image, label}` — a PIL image or a file decodable by Pillow with sides between `MIN_IMAGE_SIDE` (16) and `MAX_IMAGE_SIDE` (4096) px, and a label of at most 64 plain characters (used by the probe only). Ids match `[A-Za-z0-9_.:-]{1,64}` and are unique; a dataset needs 8..20,000 records over 2..100 labels; splitting is stratified per label after pixel-digest de-duplication so no photograph lands in two splits. Every image is resized to 224×224 by the processor. BYOD accepts one zip of images plus a `labels.csv` in that shape.",
+        "- **Data contract:** records are `{id, image, label}` — a PIL image or a file decodable by Pillow with sides between `MIN_IMAGE_SIDE` (16) and `MAX_IMAGE_SIDE` (4096) px, and a label of at most 64 plain characters (used by the probe only). Ids match `[A-Za-z0-9_.:-]{1,64}` and are unique; a training split needs 8..20,000 records over 2..100 labels, and every label needs one training, one validation and one test photograph, so with the default 15 % + 20 % stratified hold-out the effective BYOD minimum is **12 photographs for two labels** (6 per label), 15 for three, and 4 per label from four labels up (`min_byod_records(n_labels)`); splitting is stratified per label after pixel-digest de-duplication so no photograph lands in two splits. Every image is resized to 224×224 by the processor. BYOD accepts one zip of images plus a `labels.csv` in that shape.",
         "- **Validation is structural, not semantic:** every image is opened and decoded and every label checked, but nothing checks that a label is right — a mislabelled set is probed without complaint, and the reconstruction objective never reads the labels at all.",
         "- **Privacy:** Do not upload confidential or restricted data to a hosted runtime unless you are authorized to process it there. The default path uploads nothing.",
         "- **External access (data):** besides the model snapshot, the default path fetches 360 JPEG/PNG files from `https://inaturalist-open-data.s3.amazonaws.com/photos/<id>/medium.<ext>` (about 39 MB in total), each pinned by byte size and SHA-256 in the carried `samples.py` and refused on any mismatch; every photograph's iNaturalist observation page and observer login are kept in its record. Each photograph carries the CC0 1.0 licence its observer chose (nothing is committed to the repository).",
@@ -161,7 +187,13 @@ TEMPLATE = {
                 "in Sections 6 and 8; the continuation in Section 7 never reads them.\n\n"
                 "Look for: 360 photographs, the six species with 36 / 8 / 16 each, three digests, and four refusal probes — a "
                 "duplicate id, an image over the side ceiling, a dataset with one label and one too small to split — each "
-                "rejected before the model does anything."
+                "rejected before the model does anything.\n\n"
+                "*Evaluation practice.* **Bring your own data (optional):** set `USE_BYOD = True` and either `BYOD_PATH` (a zip or "
+                "a folder holding `labels.csv` and the images, as a path in this runtime — this works on Colab, Kaggle and "
+                "Jupyter) or leave `BYOD_PATH` empty to upload exactly one zip through the Colab dialog; then choose **Run after** "
+                "from this cell. This cell first puts the model back to the pinned base, so Section 6 reads the frozen model and "
+                "Section 7's epoch 0 is the frozen model. The effective minimum is 12 photographs for two labels.\n\n"
+                "**Predict before running:** the reconstruction objective never reads the labels. Why split by species at all?"
             ),
             "code": (
                 "import hashlib\n"
@@ -170,20 +202,42 @@ TEMPLATE = {
                 "import numpy as np\n"
                 "from PIL import Image\n\n"
                 "USE_BYOD = False  # @param {{type:\"boolean\"}}\n"
+                "BYOD_PATH = ''  # @param {{type:\"string\"}}\n"
                 "SPLIT_SEED = 42  # @param {{type:\"integer\"}}\n\n"
                 "os.makedirs('outputs', exist_ok=True)\n"
+                "# A re-run after Section 7 (BYOD, or a new split): Section 6 and Section 7's epoch 0 must read the pinned base.\n"
+                "had_adapter = pipe.adapter is not None\n"
+                "restored_tensors = pipe.restore_base()\n"
+                "if had_adapter or restored_tensors:\n"
+                "    print({{'restored_pinned_base': len(restored_tensors), 'note': 'the continued decoder and blocks were put back to the checkpoint and the probe was dropped; Sections 5-7 start from it again'}})\n"
                 "if USE_BYOD:\n"
-                "    from google.colab import files\n"
-                "    uploaded = files.upload()\n"
-                "    file_name, payload = next(iter(uploaded.items()))\n"
-                "    byod_zip = Path('work') / 'byod.zip'\n"
-                "    byod_zip.parent.mkdir(parents=True, exist_ok=True)\n"
-                "    byod_zip.write_bytes(payload)\n"
+                "    if BYOD_PATH.strip():\n"
+                "        byod_zip = Path(BYOD_PATH.strip()).expanduser()\n"
+                "        if not byod_zip.exists():\n"
+                "            raise FileNotFoundError(f'BYOD_PATH {{BYOD_PATH!r}} does not exist (relative paths start at {{Path.cwd()}}): give a .zip or a folder holding labels.csv and the images.')\n"
+                "        file_name = byod_zip.name\n"
+                "    else:\n"
+                "        try:\n"
+                "            from google.colab import files\n"
+                "        except ImportError:\n"
+                "            raise RuntimeError('USE_BYOD is True but BYOD_PATH is empty, and the upload dialog exists only in Google Colab: on Kaggle or Jupyter put the zip (or folder) in the runtime and set BYOD_PATH to its path.') from None\n"
+                "        uploaded = files.upload() or {{}}\n"
+                "        if len(uploaded) != 1:\n"
+                "            raise ValueError(f'Upload exactly one .zip file (received {{len(uploaded)}}; a cancelled dialog sends none): run this cell again.')\n"
+                "        file_name, payload = next(iter(uploaded.items()))\n"
+                "        if not file_name.lower().endswith('.zip'):\n"
+                "            raise ValueError(f'{{file_name}}: upload one .zip holding labels.csv and the images.')\n"
+                "        byod_zip = Path('work') / 'byod.zip'\n"
+                "        byod_zip.parent.mkdir(parents=True, exist_ok=True)\n"
+                "        byod_zip.write_bytes(payload)\n"
                 "    records = load_byod_dataset(byod_zip)\n"
                 "    splits = split_dataset(records, seed=SPLIT_SEED)\n"
                 "    data_source = 'BYOD (' + file_name + ')'\n"
                 "    display_names = {{}}\n"
-                "    raw_rows = {{'byod': len(records)}}\n"
+                "    n_labels = len({{r['label'] for r in records}})\n"
+                "    raw_rows = {{'byod': len(records), 'labels': n_labels, 'duplicate_images_dropped': len(records) - sum(len(part) for part in splits.values()), 'effective_minimum': min_byod_records(max(n_labels, 2))['total']}}\n"
+                "    if len(splits['test']) < 5 * n_labels:\n"
+                "        print({{'caution': f\"only {{len(splits['test'])}} held-out test photographs for {{n_labels}} labels (fewer than 5 per label): probe accuracy moves in large steps; add photographs before reading it\"}})\n"
                 "else:\n"
                 "    corpus_files = fetch_corpus(cache_dir='weights/inat-birds')\n"
                 "    corpus = read_corpus(corpus_files)\n"
@@ -191,7 +245,8 @@ TEMPLATE = {
                 "    data_source = f'{{CORPUS_NAME}}: {{CORPUS_RELEASE}} ({{CORPUS_LICENSE}})'\n"
                 "    display_names = {{key: common for key, (_scientific, common) in SPECIES.items()}}\n"
                 "    raw_rows = {{'photographs': len(corpus), 'bytes': sum(len(v) for v in corpus_files.values()), 'observers': len({{r['observer'] for r in corpus}})}}\n"
-                "dataset_manifests = {{name: validate_dataset(part) for name, part in splits.items()}}\n"
+                "# The training split must hold MIN_RECORDS; validation and test only need one photograph each (split_dataset checks the labels).\n"
+                "dataset_manifests = {{name: validate_dataset(part, min_records=MIN_RECORDS if name == 'train' else 1) for name, part in splits.items()}}\n"
                 "splits = {{name: manifest['records'] for name, manifest in dataset_manifests.items()}}\n"
                 "disjoint = check_split_disjoint(splits)\n"
                 "train_records, val_records, test_records = splits['train'], splits['validation'], splits['test']\n"
@@ -218,7 +273,15 @@ TEMPLATE = {
         },
         {
             "md": (
+                "**What to notice:** 360 photographs, 216 / 48 / 96, the three digests, `observer_overlap`, and the four refusals.\n\n<details><summary>Check your reasoning</summary>Because the probe in Sections 6 and 8 does read them: stratifying keeps every species in every split, so the probe is scored on all six. The reconstruction numbers would be valid under any image-disjoint split. A review probe counted 53 of 222 observers in more than one split, so a probe can partly learn a photographer's style.</details>"
+            ),
+        },
+        {
+            "md": (
                 "## 5. Mask and reconstruct through the inference contract\n\n"
+                "*Core concept.* A masked autoencoder hides most of an image and predicts the hidden pixels from the visible "
+                "ones; its loss is computed on the hidden patches only. **Predict before running:** on a flat-coloured drawn "
+                "square, will the model's masked MSE be lower or higher than on a photograph?\n\n"
                 "The inference contract is exercised on three 32×32 synthetic shapes — a red square, a green circle and a blue "
                 "triangle — rendered in code as ASCII PPM files exactly as the repository's `examples/sample-data/generate_samples.py` "
                 "renders them and digest-asserted against `SHA256SUMS`, a different image family from the photographs, and images "
@@ -312,6 +375,11 @@ TEMPLATE = {
         },
         {
             "md": (
+                "**What to notice:** the masked and visible MSE per shape, and `hidden_patches` (147 of 196 for each).\n\n<details><summary>Check your reasoning</summary>Much lower. In the CPU build record the three drawn shapes scored masked MSE 0.0005, 0.0113 and 0.0228 against 0.2281 for the test photographs: a hidden patch of a flat-coloured drawing on a white ground is predictable from its visible neighbours, while a photograph's hidden feathers and background are not. A low error on drawings says the task is easy, not that the model is good.</details>"
+            ),
+        },
+        {
+            "md": (
                 "## 6. Baselines and the frozen model on the test photographs, two ways\n\n"
                 "**Reconstruction.** `pipe.evaluate_reconstruction` hides one seeded 75 % mask per photograph (the seed is derived "
                 "from the record id, so the same photograph gets the same mask in every evaluation of this notebook) and reports "
@@ -319,8 +387,7 @@ TEMPLATE = {
                 "photographs. Two non-neural fills are scored on exactly the same masks: the **mean-patch fill** (every hidden "
                 "patch is the mean colour of the visible patches — what a model that learned nothing about images would do) and "
                 "the **blur fill** (every hidden patch is the mean colour of its visible neighbours — the cheapest use of locality). "
-                "Expect the frozen model well below both: the build record measured masked MSE 0.2281 against 0.7652 "
-                "(mean fill) and 0.5452 (blur fill), PSNR 19.3 dB on the hidden patches.\n\n"
+                "**What to look for:** the frozen model against both fills, on the mean *and* the median.\n\n"
                 "**Linear probe.** `pipe.fit_probe` embeds the 216 training photographs with nothing hidden, standardises the "
                 "features with the training set's mean and standard deviation (the paper's affine-free BatchNorm) and fits a "
                 "multinomial logistic-regression head by full-batch Adam; `pipe.evaluate` reports its **accuracy** and **macro F1** "
@@ -329,9 +396,12 @@ TEMPLATE = {
                 "a balanced split), and the **colour nearest neighbour** answers with the label of the training photograph whose "
                 "3×3 mean-colour grid is closest. MAE features are known to probe poorly before fine-tuning (the paper reports "
                 "67.8 % linear-probe top-1 on ImageNet against 83.6 % after fine-tuning), and six bird species from 216 "
-                "photographs is a hard probe: the build record measured accuracy 0.365 / macro F1 @P:FROZEN_PROBE_F1@ against the "
-                "majority floor's 0.167, the colour neighbour's 0.260 and the k-NN's 0.219. Read the per-species "
-                "recall: it is where the probe's number comes from."
+                "photographs is a hard probe. Read the per-species recall: it is where the probe's number comes from.\n\n"
+                "*Evaluation practice.* The cell records **verdicts** — whether the frozen model beats both fills, and whether the "
+                "probe beats the majority floor — instead of asserting them: on a small BYOD test split a miss is a finding, and "
+                "the notebook continues to the continuation, export and reload.\n\n"
+                "**Predict before running:** MAE features are known to probe poorly before fine-tuning. Will the linear probe beat "
+                "a k-NN on the same features, and by how much will it beat the 1/6 floor?"
             ),
             "code": (
                 "RK = ('masked_mse', 'masked_mse_median', 'masked_mse_visible', 'psnr_masked')\n"
@@ -343,7 +413,9 @@ TEMPLATE = {
                 "for name, fill in frozen_rec['baselines'].items():\n"
                 "    print({{name: {{k: round(fill[k], 4) for k in RK}}, 'note': fill['baseline']}})\n"
                 "print({{'definitions': frozen_rec['definitions']}})\n"
-                "assert frozen_rec['masked_mse'] < frozen_rec['baselines']['blur_fill']['masked_mse'] < frozen_rec['baselines']['mean_patch_fill']['masked_mse']\n\n"
+                "# Reported verdicts, not assertions: on your images a fill may come close, and that is a finding.\n"
+                "frozen_rec_verdict = 'frozen below both fills' if frozen_rec['masked_mse'] < min(frozen_rec['baselines']['blur_fill']['masked_mse'], frozen_rec['baselines']['mean_patch_fill']['masked_mse']) else 'a fill matches or beats the frozen model'\n"
+                "print({{'frozen_vs_fills': frozen_rec_verdict}})\n\n"
                 "baseline_majority = majority_baseline(train_records, test_records, classes)\n"
                 "baseline_neighbour = colour_neighbour_baseline(train_records, test_records, classes)\n"
                 "print({{'majority_baseline': {{k: round(baseline_majority[k], 3) for k in CK}}, 'n': baseline_majority['n'], 'note': baseline_majority['baseline']}})\n"
@@ -356,7 +428,13 @@ TEMPLATE = {
                 "print({{'knn_on_the_same_features': {{k: round(frozen_probe['knn'][k], 3) for k in CK}}, 'note': frozen_probe['knn']['baseline']}})\n"
                 "frozen_fields = {{c: {{'n': v['support'], 'recall': round(v['recall'], 2), 'f1': round(v['f1'], 2)}} for c, v in frozen_probe['per_class'].items()}}\n"
                 "print({{'by_species_frozen': frozen_fields}})\n"
-                "assert frozen_probe['accuracy'] > baseline_majority['accuracy']"
+                "frozen_probe_verdict = 'above floor' if frozen_probe['accuracy'] > baseline_majority['accuracy'] else 'at or below floor'\n"
+                "print({{'frozen_probe_vs_floor': frozen_probe_verdict}})"
+            ),
+        },
+        {
+            "md": (
+                "**What to notice:** the masked MSE mean and median against both fills, the probe against the three classifiers, and the per-species recall.\n\n<details><summary>Check your reasoning</summary>In the Kaggle T4 release run (21 September 2026) the frozen model's masked MSE was 0.2281 (median 0.1801) against 0.5452 for the blur fill and 0.7652 for the mean fill, PSNR 19.3 dB on the hidden patches. The probe scored accuracy 0.365 and macro F1 0.365 against the majority floor's 0.167, the colour neighbour's 0.260 and the k-NN's 0.219 — above every baseline, but with a 95 % interval of roughly ±0.10 on 96 photographs, and far from a classifier you would ship.</details>"
             ),
         },
         {
@@ -369,13 +447,18 @@ TEMPLATE = {
                 "decay 0.05, gradient clipping at 1.0, seeded shuffling and masks, no scheduler, and **no labels**. Epoch 0 "
                 "records the frozen model's validation reconstruction; every epoch is scored on the 48 validation photographs "
                 "with their fixed seeded masks, and the epoch with the lowest validation masked MSE is kept — so the selection "
-                "can return the frozen model itself (epoch 0) when nothing beats it, and never returns a worse one. The fitted "
+                "can return the frozen model itself (epoch 0) when nothing beats it, and never returns one worse *on the "
+                "validation split*; the test split can still move either way. Every call starts from the **pinned base**: "
+                "tensors an earlier call (or an artifact) changed are put back first, so epoch 0 is always the frozen model and "
+                "re-running Sections 7–8 with a changed field repeats the comparison validly. The fitted "
                 "probe is discarded, because the features it was fitted on no longer exist.\n\n"
                 "Watch the numbers move very little: the pre-trained model has seen 1,600 epochs of ImageNet, and 216 "
                 "photographs of birds are not a new domain to it. The build record's learning-rate sweep found `1e-4` makes "
                 "the validation masked MSE **worse** from the first epoch (batches of eight with random masks are a noisy "
                 "gradient), and `1e-5` moves it from 0.2335 to 0.2332 at epoch 3 of 5. That is the honest "
-                "default: the configuration that did not hurt, chosen on the validation split."
+                "default: the configuration that did not hurt, chosen on the validation split. To compare a change side by side "
+                "without replacing the default exports, use Section 10.\n\n"
+                "**Predict before running:** will any epoch beat the frozen model's validation masked MSE, and by how much?"
             ),
             "code": (
                 "EPOCHS = 5  # @param {{type:\"integer\"}}\n"
@@ -389,12 +472,22 @@ TEMPLATE = {
                 "    if 'note' in entry:\n"
                 "        row['note'] = entry['note']\n"
                 "    print(row)\n\n\n"
+                "settings = {{'epochs': EPOCHS, 'lr': LEARNING_RATE, 'batch_size': BATCH_SIZE, 'trainable_blocks': TRAINABLE_BLOCKS}}\n"
+                "if settings != {{'epochs': 5, 'lr': 1e-5, 'batch_size': 8, 'trainable_blocks': 2}}:\n"
+                "    print({{'note': 'changed settings: this run starts again from the pinned base and replaces the default results of Sections 8-9; Section 10 compares a change side by side instead', 'settings': settings}})\n"
                 "t0 = time.perf_counter()\n"
                 "adapt_result = pipe.adapt(train_records, val_records, epochs=EPOCHS, lr=LEARNING_RATE, batch_size=BATCH_SIZE, trainable_blocks=TRAINABLE_BLOCKS, progress=report)\n"
                 "adapt_seconds = round(time.perf_counter() - t0, 1)\n"
                 "print({{'trainable_parameters': adapt_result['n_trainable'], 'total_parameters': adapt_result['n_total'], 'objective': adapt_result['objective'], 'best_epoch': adapt_result['best_epoch'], 'selection': adapt_result['selection'], 'seconds': adapt_seconds}})\n"
                 "val_history = {{h['epoch']: h['val']['masked_mse'] for h in adapt_result['history']}}\n"
-                "assert val_history[adapt_result['best_epoch']] <= val_history[0]  # the selector never returns an epoch worse than the frozen model"
+                "if val_history[adapt_result['best_epoch']] > val_history[0]:  # a contract check on the selector, not a quality claim\n"
+                "    raise RuntimeError(f\"the selector returned epoch {{adapt_result['best_epoch']}}, worse on validation than the frozen model\")\n"
+                "print({{'started_from': adapt_result['started_from'], 'validation_masked_mse_by_epoch': {{k: round(v, 4) for k, v in val_history.items()}}}})"
+            ),
+        },
+        {
+            "md": (
+                '**What to notice:** the validation masked MSE per epoch and `best_epoch`.\n\n<details><summary>Check your reasoning</summary>Barely. In the release run validation masked MSE went 0.2335 → 0.2338 → 0.2338 → 0.2332 → 0.2334 → 0.2337 and epoch 3 was kept — a gain of 0.0003 on 48 photographs, with no dispersion estimate. A model trained for 1,600 ImageNet epochs is already converged on natural photographs.</details>'
             ),
         },
         {
@@ -407,11 +500,14 @@ TEMPLATE = {
                 "reconstruction (mean fill, blur fill, frozen, adapted), five on the probe (majority, colour neighbour, k-NN, "
                 "frozen probe, adapted probe) — the per-species breakdown is repeated and the evaluation report is written as "
                 "JSON. Read it in this order: the **validation masked MSE** that selected the epoch, then the **test masked MSE** "
-                "(the build record measured 0.2281 → 0.2280), then the probe (0.365 → 0.365 accuracy, "
-                "@P:FROZEN_PROBE_F1@ → @P:ADAPTED_PROBE_F1@ macro F1) and the per-species recall. Ninety-six photographs from one seeded split "
+                "— its **mean and its median together**, and `paired_per_image`, how many test photographs got better or worse "
+                "under the same masks — then the probe and the per-species recall. The selector's guarantee holds on the "
+                "validation split only; held-out error can move either way. The cell records verdicts instead of asserting a "
+                "gain. Ninety-six photographs from one seeded split "
                 "give **no dispersion estimate**; accuracy moves in steps of one photograph; and a masked MSE that moved in the "
                 "fourth decimal is the honest reading of continued pre-training on a converged model — sample-sanity evidence that "
-                "the adaptation contract works, not a benchmark, and not a claim about your images until you measure them."
+                "the adaptation contract works, not a benchmark, and not a claim about your images until you measure them.\n\n"
+                "**Predict before running:** if the mean test masked MSE barely moves, will the median move the same way?"
             ),
             "code": (
                 "adapted_rec = pipe.evaluate_reconstruction(test_records, seed=0)\n"
@@ -426,6 +522,22 @@ TEMPLATE = {
                 "    'probe': {{k: {{'majority': round(baseline_majority[k], 3), 'colour_neighbour': round(baseline_neighbour[k], 3), 'knn_frozen': round(frozen_probe['knn'][k], 3), 'knn_adapted': round(adapted_probe['knn'][k], 3), 'frozen': round(frozen_probe[k], 3), 'adapted': round(adapted_probe[k], 3)}} for k in CK}},\n"
                 "    'probe_delta_vs_frozen': {{k: round(adapted_probe[k] - frozen_probe[k], 3) for k in CK}},\n"
                 "    'by_species': {{c: {{'n': frozen_fields[c]['n'], 'frozen_recall': frozen_fields[c]['recall'], 'adapted_recall': adapted_fields[c]['recall'], 'frozen_f1': frozen_fields[c]['f1'], 'adapted_f1': adapted_fields[c]['f1']}} for c in classes}},\n"
+                "}}\n"
+                "frozen_by_id = {{row['id']: row['masked_mse'] for row in frozen_rec['per_image']}}\n"
+                "paired_deltas = [row['masked_mse'] - frozen_by_id[row['id']] for row in adapted_rec['per_image']]\n"
+                "comparison['paired_per_image'] = {{'better': sum(d < 0 for d in paired_deltas), 'worse': sum(d > 0 for d in paired_deltas), 'same': sum(d == 0 for d in paired_deltas), 'of': len(paired_deltas)}}\n"
+                "def direction(new, old, lower_is_better):\n"
+                "    if new == old:\n"
+                "        return 'no change'\n"
+                "    return 'improved' if (new < old) == lower_is_better else 'worse'\n"
+                "# Reported verdicts, not assertions: a continuation that does not help is a result to record, and export and reload still run.\n"
+                "comparison['verdicts'] = {{\n"
+                "    'frozen_vs_fills': frozen_rec_verdict,\n"
+                "    'frozen_probe_vs_floor': frozen_probe_verdict,\n"
+                "    'adapted_below_blur_fill': bool(adapted_rec['masked_mse'] < adapted_rec['baselines']['blur_fill']['masked_mse']),\n"
+                "    'test_masked_mse_mean': direction(adapted_rec['masked_mse'], frozen_rec['masked_mse'], True),\n"
+                "    'test_masked_mse_median': direction(adapted_rec['masked_mse_median'], frozen_rec['masked_mse_median'], True),\n"
+                "    'probe_accuracy': direction(adapted_probe['accuracy'], frozen_probe['accuracy'], False),\n"
                 "}}\n"
                 "for key, row in comparison.items():\n"
                 "    print({{key: row}})\n"
@@ -445,9 +557,14 @@ TEMPLATE = {
                 "}}\n"
                 "with open('outputs/{stem}_evaluation_report.json', 'w', encoding='utf-8') as f:\n"
                 "    json.dump(evaluation_report_payload, f, indent=2, ensure_ascii=False)\n"
-                "assert abs(adapted_val_rec['masked_mse'] - val_history[adapt_result['best_epoch']]) < 1e-4  # the kept epoch re-scores to the number that selected it\n"
-                "assert adapted_rec['masked_mse'] < adapted_rec['baselines']['blur_fill']['masked_mse']\n"
+                "if abs(adapted_val_rec['masked_mse'] - val_history[adapt_result['best_epoch']]) >= 1e-4:  # a contract check: the kept epoch re-scores to the number that selected it\n"
+                "    raise RuntimeError('the kept epoch does not re-score to the validation masked MSE that selected it')\n"
                 "print({{'report': 'outputs/{stem}_evaluation_report.json'}})"
+            ),
+        },
+        {
+            "md": (
+                "**What to notice:** the mean and median rows of `reconstruction_delta_vs_frozen`, `paired_per_image`, the probe and the `verdicts`.\n\n<details><summary>Check your reasoning</summary>No. In the release run the mean test masked MSE moved from 0.2281 to 0.2280 (−0.00005) while the median rose from 0.1801 to 0.1827 (+0.0026) — about fifty times larger and in the opposite direction: the typical photograph got slightly worse while the mean stayed flat. The probe stayed at 0.365 accuracy and 0.365 macro F1. The selector's guarantee is about the 48 validation photographs, not the test split; a single metric does not characterise the change.</details>"
             ),
         },
         {
@@ -466,7 +583,10 @@ TEMPLATE = {
                 "`ViTMAEPipeline.from_artifact` re-verifies the base snapshot, checks the artifact manifest, its digest and its "
                 "exact tensor set **before** deserialising, refuses any tensor outside the declared blocks, and overlays the "
                 "tensors onto a freshly loaded base — a new object from files, not the in-memory model (VER2). The cell asserts "
-                "identical masked MSE on eight test photographs under the same masks and identical probe decisions (VER4)."
+                "identical masked MSE on eight test photographs under the same masks and identical probe decisions (VER4) — a "
+                "contract check, so it stays a hard check.\n\n"
+                "**Predict before running:** the continuation saw only photographs. Will the drawn shapes reconstruct better or "
+                "worse afterwards?"
             ),
             "code": (
                 "import shutil\n\n"
@@ -520,6 +640,72 @@ TEMPLATE = {
                 "print(sorted(os.listdir('outputs')))"
             ),
         },
+        {
+            "md": (
+                '**What to notice:** `frozen_masked_mse` against `adapted_masked_mse` for each shape (`same_mask` should be true), and the reload parity line.\n\n<details><summary>Check your reasoning</summary>In the CPU build record the three shapes moved from 0.0005 / 0.0113 / 0.0228 to 0.0006 / 0.0117 / 0.0219 under the same masks — two slightly worse, one slightly better — and three drawings cannot tell you which is typical — record the change as a finding about the continuation outside its corpus, not as a measurement. Reload parity held in the release run: identical reconstructions and probe decisions on eight of eight test photographs.</details>'
+            ),
+        },
+        {
+            "md": (
+                "## 10. Change one thing: a ten-times-higher learning rate, or another mask ratio (optional)\n\n"
+                "*Evaluation practice.* A **Predict → Change one thing → Run → Observe → Explain** activity, off by default so "
+                "Run all is unaffected. Set `RUN_EXPERIMENT = True`, change **one** field — by default the learning rate goes from "
+                "1e-5 to 1e-4; `EXPERIMENT_MASK_RATIO` changes the mask ratio for both the continuation and its own frozen control "
+                "— and run this cell after Sections 4–9. The experiment loads its **own** pipeline from the verified snapshot, so it "
+                "starts from the checkpoint and never touches the default `pipe`; it scores its own frozen control at the same mask "
+                "ratio, writes only to `outputs/{stem}_experiment/`, prints the default and the changed run side by side "
+                "(including epoch 0, which must equal the default's at the default ratio), and checks that the default exports "
+                "are byte-identical afterwards.\n\n"
+                "**Predict:** at 1e-4, which epoch will the selector keep?"
+            ),
+            "code": (
+                "RUN_EXPERIMENT = False  # @param {{type:\"boolean\"}}\n"
+                "EXPERIMENT_LEARNING_RATE = 1e-4  # @param {{type:\"number\"}}\n"
+                "EXPERIMENT_MASK_RATIO = 0.75  # @param {{type:\"number\"}}\n"
+                "EXPERIMENT_TRAINABLE_BLOCKS = 2  # @param {{type:\"integer\"}}\n\n"
+                "if not RUN_EXPERIMENT:\n"
+                "    print({{'experiment': 'skipped (RUN_EXPERIMENT = False); the default path above is complete'}})\n"
+                "else:\n"
+                "    canonical_files = {{'adapter': artifact_dir / 'adapter.safetensors', 'evaluation_report': Path('outputs/{stem}_evaluation_report.json'), 'result': Path('outputs/{stem}_result.json')}}\n"
+                "    canonical = {{name: hashlib.sha256(path.read_bytes()).hexdigest() for name, path in canonical_files.items()}}\n"
+                "    experiment_dir = Path('outputs/{stem}_experiment')\n"
+                "    shutil.rmtree(experiment_dir, ignore_errors=True)\n"
+                "    experiment_dir.mkdir(parents=True)\n"
+                "    # Its own pipeline from the verified snapshot: the experiment starts from the checkpoint and the default pipe is untouched.\n"
+                "    experiment_pipe = ViTMAEPipeline.from_pretrained(weights_dir=WEIGHTS_DIR, device=pipe.device)\n"
+                "    experiment_control = experiment_pipe.evaluate_reconstruction(test_records, mask_ratio=EXPERIMENT_MASK_RATIO, seed=0)\n"
+                "    experiment_result = experiment_pipe.adapt(train_records, val_records, epochs=EPOCHS, lr=EXPERIMENT_LEARNING_RATE, batch_size=BATCH_SIZE, trainable_blocks=EXPERIMENT_TRAINABLE_BLOCKS, mask_ratio=EXPERIMENT_MASK_RATIO, progress=report)\n"
+                "    experiment_rec = experiment_pipe.evaluate_reconstruction(test_records, mask_ratio=EXPERIMENT_MASK_RATIO, seed=0)\n"
+                "    side_by_side = {{\n"
+                "        'settings': {{'default': {{'lr': adapt_result['lr'], 'mask_ratio': adapt_result['mask_ratio'], 'trainable_blocks': adapt_result['trainable_blocks']}}, 'experiment': {{'lr': EXPERIMENT_LEARNING_RATE, 'mask_ratio': EXPERIMENT_MASK_RATIO, 'trainable_blocks': EXPERIMENT_TRAINABLE_BLOCKS}}}},\n"
+                "        'validation_masked_mse_by_epoch': {{'default': [round(h['val']['masked_mse'], 4) for h in adapt_result['history']], 'experiment': [round(h['val']['masked_mse'], 4) for h in experiment_result['history']]}},\n"
+                "        'best_epoch': {{'default': adapt_result['best_epoch'], 'experiment': experiment_result['best_epoch']}},\n"
+                "        'test_masked_mse': {{'default_frozen': round(frozen_rec['masked_mse'], 4), 'default_adapted': round(adapted_rec['masked_mse'], 4), 'experiment_frozen_control': round(experiment_control['masked_mse'], 4), 'experiment_adapted': round(experiment_rec['masked_mse'], 4)}},\n"
+                "        'test_masked_mse_median': {{'default_frozen': round(frozen_rec['masked_mse_median'], 4), 'default_adapted': round(adapted_rec['masked_mse_median'], 4), 'experiment_frozen_control': round(experiment_control['masked_mse_median'], 4), 'experiment_adapted': round(experiment_rec['masked_mse_median'], 4)}},\n"
+                "    }}\n"
+                "    for key, row in side_by_side.items():\n"
+                "        print({{key: row}})\n"
+                "    with open(experiment_dir / 'experiment_report.json', 'w', encoding='utf-8') as handle:\n"
+                "        json.dump({{'side_by_side': side_by_side, 'history': experiment_result['history']}}, handle, indent=2, ensure_ascii=False, default=str)\n"
+                "    unchanged = {{name: hashlib.sha256(path.read_bytes()).hexdigest() == canonical[name] for name, path in canonical_files.items()}}\n"
+                "    if not all(unchanged.values()):\n"
+                "        raise RuntimeError(f'the experiment changed a default export: {{unchanged}}')\n"
+                "    print({{'default_exports_unchanged': unchanged, 'experiment_outputs': str(experiment_dir)}})\n"
+                "    del experiment_pipe"
+            ),
+        },
+        {
+            "md": (
+                "**Observe → Explain.** Compare the two validation curves (epoch 0 must be equal at the default mask ratio) and the "
+                "test rows against each run's own frozen control.\n\n"
+                "<details><summary>Check your reasoning</summary>The build record's sweep found that `1e-4` makes the validation "
+                "masked MSE worse from the first epoch — batches of eight with random masks are a noisy gradient — so the "
+                "selector keeps epoch 0, the frozen model, and the experiment's adapted row equals its control. That is the "
+                "selector doing its job. With a lower mask ratio the encoder sees more of each image, so both the control and "
+                "the adapted masked MSE fall; compare each run only with its own control. No experiment run is recorded on the "
+                "release runtime.</details>"
+            ),
+        },
     ],
     "closing": (
         "## Interpretation and limits\n\n"
@@ -528,17 +714,19 @@ TEMPLATE = {
         "mean-pooled features carry enough to lift a linear probe over six bird species above the majority floor, the colour "
         "neighbour and a k-NN on the same features (0.365 against 0.167, 0.260 and 0.219) — while "
         "still being, as the paper says of MAE features, a poor linear-probe backbone until fine-tuned. A bounded continuation "
-        "of the masked-autoencoding objective on 216 photographs, chosen on the validation split, moves the held-out masked "
-        "MSE from 0.2281 to 0.2280 and the probe from 0.365 to 0.365, and exports a 161 MB "
-        "adapter that reloads to identical reconstructions and probe decisions. That is the claim: the adaptation contract "
-        "works end to end on a real photograph set, the selector is honest enough to keep the frozen model when nothing beats "
-        "it, and the numbers it produces are read on the objective and on a probe, per species, against non-neural baselines "
+        "of the masked-autoencoding objective on 216 photographs, chosen on the validation split, moved the held-out mean "
+        "masked MSE from 0.2281 to 0.2280 while the median rose from 0.1801 to 0.1827 (Kaggle T4 release run, 21 September "
+        "2026), left the probe at 0.365, and exported a 161 MB adapter that reloads to identical reconstructions and probe "
+        "decisions. That is the claim: the adaptation contract works end to end on a real photograph set, the selector is "
+        "honest enough to keep the frozen model when nothing beats it on validation — a guarantee about the validation split, "
+        "not the test split —  and the numbers it produces are read on the objective and on a probe, per species, against non-neural baselines "
         "and the frozen model rather than in isolation.\n\n"
         "What the numbers say is that continued pre-training on a few hundred in-domain photographs does not change a model "
         "that has seen 1,600 epochs of ImageNet: the build record's learning-rate sweep (`docs/release-verification.md`) "
         "found `1e-4` hurts from the first epoch and `1e-5` moves the validation masked MSE in the fourth decimal. Where "
         "continuation earns its place is a domain the checkpoint has not seen — medical, satellite, microscopy, line art — "
-        "and that is what BYOD is for; the assertion in Section 7 (the kept epoch is never worse than the frozen model) and "
+        "and that is what BYOD is for; the check in Section 7 (the kept epoch is never worse than the frozen model on "
+        "validation) and "
         "the baselines in Sections 6 and 8 are what make such a run readable. The test split is 96 photographs from one "
         "seeded draw of one sample, the validation split that picks the epoch is 48, a masked MSE is the model's own "
         "objective and not a perceptual judgement, and the probe's accuracy moves in steps of one photograph.\n\n"
@@ -554,10 +742,40 @@ TEMPLATE = {
         "pre-training objective, evaluate against non-neural baselines and the frozen model on an image-disjoint split two "
         "ways, and emit the shown machine-readable artifacts — without the repository being reachable. It does **not** "
         "establish benchmark superiority, representation quality on any other population or camera, or production fitness.\n\n"
-        "**Optional experiments (they do not affect the default path):** set `TRAINABLE_BLOCKS = 0` to train the decoder alone "
-        "and compare the artifact size; raise `LEARNING_RATE` to `1e-4` and watch the selector keep epoch 0; change "
-        "`DEFAULT_MASK_RATIO` in `reconstruct` calls (`mask_ratio=0.5`) and read how the masked MSE falls as the encoder sees "
-        "more; or bring your own images from an unfamiliar domain through BYOD and read the fills before the adapted number.\n\n"
+        "**Optional experiments (off by default; each names its field and what to run):** Section 10 runs a changed "
+        "continuation in its own pipeline beside the default — `EXPERIMENT_LEARNING_RATE` (1e-4 by default: watch the "
+        "selector keep epoch 0), `EXPERIMENT_MASK_RATIO` (for example 0.5, scored against its own frozen control) or "
+        "`EXPERIMENT_TRAINABLE_BLOCKS` (0 trains the decoder alone; compare the artifact size); change one and run that cell "
+        "again. Changing `EPOCHS`, `LEARNING_RATE` or `TRAINABLE_BLOCKS` and choosing **Run after** from Section 7 also starts "
+        "from the pinned base — every `adapt` restores it first — but replaces the default results and exports. BYOD: "
+        "`USE_BYOD` and `BYOD_PATH` in Section 4, then **Run after** from Section 4; bring images from an unfamiliar domain "
+        "and read the fills before the adapted number.\n\n"
+        "## Troubleshooting\n\n"
+'- **Section 1 stops with "This notebook needs a Linux x86_64 runtime"** — you are on Windows, macOS or an ARM machine. Use Google Colab, Kaggle or a Linux x86_64 Jupyter server.\n- **The uv wheel fails its size/SHA-256 check, or a download in Section 1 times out** — run Section 1 again; a complete environment is reused, an incomplete one is finished. If it repeats, the network is blocking or altering `files.pythonhosted.org` or `pypi.org`.\n- **"The isolated environment\'s Python process exited"** — usually out of memory. Restart the session and choose **Run all**; leave the optional experiment off on a small runtime.\n- **You re-ran Section 1 on its own** — nothing is lost: it keeps the running worker and every variable, so the cells after it keep working. After a session restart, run from the top.\n- **Section 3 reports a size or SHA-256 mismatch, or cannot reach the Hub** — the message names the file. Delete it from the snapshot folder Section 3 prints and run Section 3 again; the snapshot comes from `huggingface.co`.\n- **Section 4 cannot fetch a photograph, or one fails its digest** — `fetch_corpus` names it; the default path needs `inaturalist-open-data.s3.amazonaws.com`. Run Section 4 again (cached photographs are re-hashed); delete `weights/inat-birds/` if a cached file is corrupt.\n- **Out of memory** — lower `BATCH_SIZE` in Section 7, or restart the session and choose **Run all**; leave Section 10 off on a small runtime.\n- **BYOD: "BYOD_PATH … does not exist"** — the path is relative to the working directory printed in the message.\n- **BYOD: "the upload dialog exists only in Google Colab"** — on Kaggle or Jupyter, put the zip in the runtime (or attach it as a dataset) and set `BYOD_PATH`.\n- **BYOD: "Upload exactly one .zip file"** — the dialog was cancelled or several files were chosen; run the cell again.\n- **BYOD: "labels.csv line N (file …): that image file is not in the dataset"** — fix the `file` column of that row, or add the image to the zip.\n- **BYOD: "… Pillow cannot decode the image"** — the file on that line is corrupt or not an image.\n- **BYOD: "split leaves no train/validation photograph for labels …" or "… training records"** — add photographs; the message names the minimum for your label count.\n'
+        "## Glossary\n\n"
+        "- **Mask / mask ratio** — the random set of hidden patches; 75 % of 196 by default, seeded per photograph here.\n"
+        "- **Masked MSE / visible MSE** — the mean squared error over the hidden patches (the model's objective) and over "
+        "the visible ones, in the processor's normalised pixel space.\n"
+        "- **PSNR** — peak signal-to-noise ratio of the hidden patches, in dB; higher is better.\n"
+        "- **Mean-patch fill / blur fill** — two non-neural reconstructions: the mean visible colour, and the mean of each "
+        "hidden patch's visible neighbours.\n"
+        "- **Mean pooling / standardisation** — averaging the patch tokens into one vector; scaling each feature by the "
+        "training set's mean and standard deviation.\n"
+        "- **Linear probe / k-NN** — a logistic-regression head on frozen features; a nearest-neighbour vote on the same "
+        "features.\n"
+        "- **Accuracy / macro F1** — the fraction right; the mean of per-class F1.\n"
+        "- **Epoch selection** — keeping the epoch with the lowest validation masked MSE; a guarantee on validation only.\n"
+        "- **Paired per-image count** — how many test photographs got better or worse under the same masks.\n"
+        "- **Adapter / reload parity** — the trained tensors and the probe head (safetensors) overlaid on the pinned base; "
+        "the reloaded pipeline gives identical outputs.\n"
+        "- **BYOD** — bring your own data: your photographs through the same cells.\n\n"
+        "## Conclusion (your notes)\n\n"
+        "Optional — fill in from **your** run, not the recorded one:\n\n"
+        "- The data was ___ photographs over ___ labels; test split ___.\n"
+        "- Frozen masked MSE ___ (median ___) against the blur fill ___ and the mean fill ___.\n"
+        "- Probe accuracy ___ against the floor ___, the colour neighbour ___ and the k-NN ___.\n"
+        "- After continuation (epoch ___ kept): masked MSE ___ (median ___), ___ photographs better and ___ worse; probe ___.\n"
+        "- What I would need before claiming continuation helps: ___ (for example an unfamiliar domain, more test images, several seeds).\n\n"
         "## References\n\n"
         "- Repository README: https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/README.md\n"
         "- Repository model card: https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/MODEL_CARD.md\n"

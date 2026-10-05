@@ -50,7 +50,9 @@ CODE_MARKERS = (
     "splits = build_sample_dataset(corpus, seed=SPLIT_SEED)",
     "records = load_byod_dataset(byod_zip)",
     "splits = split_dataset(records, seed=SPLIT_SEED)",
-    "dataset_manifests = {name: validate_dataset(part) for name, part in splits.items()}",
+    "dataset_manifests = {name: validate_dataset(part, min_records=MIN_RECORDS if name == 'train' else 1) for name, part in splits.items()}",
+    "restored_tensors = pipe.restore_base()",
+    "BYOD_PATH = ''",
     "disjoint = check_split_disjoint(splits)",
     "'observer_overlap': observer_overlap(splits)",
     "classes = class_names(train_records)",
@@ -68,25 +70,30 @@ CODE_MARKERS = (
     "'pipeline_mse_is_model_loss': abs(scene['model_loss'] - float(np.mean([e['masked_mse'] for e in scene['results']]))) < 1e-4",
     "frozen_scene = evaluation_report(scene, sample_kind='synthetic')",
     "frozen_rec = pipe.evaluate_reconstruction(test_records, seed=0)",
-    "assert frozen_rec['masked_mse'] < frozen_rec['baselines']['blur_fill']['masked_mse'] < frozen_rec['baselines']['mean_patch_fill']['masked_mse']",
+    "frozen_rec_verdict = ",
     "baseline_majority = majority_baseline(train_records, test_records, classes)",
     "baseline_neighbour = colour_neighbour_baseline(train_records, test_records, classes)",
     "frozen_probe_fit = pipe.fit_probe(train_records)",
     "frozen_probe = pipe.evaluate(test_records)",
-    "assert frozen_probe['accuracy'] > baseline_majority['accuracy']",
+    "frozen_probe_verdict = ",
     "adapt_result = pipe.adapt(train_records, val_records, epochs=EPOCHS, lr=LEARNING_RATE, batch_size=BATCH_SIZE, trainable_blocks=TRAINABLE_BLOCKS, progress=report)",
-    "assert val_history[adapt_result['best_epoch']] <= val_history[0]",
+    "if val_history[adapt_result['best_epoch']] > val_history[0]:",
     "adapted_rec = pipe.evaluate_reconstruction(test_records, seed=0)",
     "adapted_val_rec = pipe.evaluate_reconstruction(val_records, seed=0)",
     "adapted_probe_fit = pipe.fit_probe(train_records)",
     "adapted_probe = pipe.evaluate(test_records)",
-    "assert abs(adapted_val_rec['masked_mse'] - val_history[adapt_result['best_epoch']]) < 1e-4",
-    "assert adapted_rec['masked_mse'] < adapted_rec['baselines']['blur_fill']['masked_mse']",
+    "if abs(adapted_val_rec['masked_mse'] - val_history[adapt_result['best_epoch']]) >= 1e-4:",
+    "comparison['verdicts'] = {",
+    "comparison['paired_per_image'] = ",
     "adapted_scene = pipe.reconstruct(shape_images, seed=SCENE_SEED)",
     "adapted_scene_report = evaluation_report(adapted_scene, sample_kind='synthetic')",
     "pipe.save_artifact(artifact_dir, metadata={'tutorial': 'vit_mae_pretraining', 'data_source': data_source})",
     "reloaded = ViTMAEPipeline.from_artifact(artifact_dir, weights_dir=WEIGHTS_DIR, device=pipe.device)",
     "assert parity['identical_reconstructions'] == parity['of'] and parity['identical_probe_decisions'] == parity['of'] and parity['max_abs_probe_score_difference'] < 1e-4",
+    # Section 10 (optional, off by default): its own pipeline, default exports checked unchanged (MAE-M2)
+    "RUN_EXPERIMENT = False",
+    "experiment_pipe = ViTMAEPipeline.from_pretrained(weights_dir=WEIGHTS_DIR, device=pipe.device)",
+    "raise RuntimeError(f'the experiment changed a default export: {unchanged}')",
     "write_provenance('outputs/provenance.json', pipeline=pipe)",
     "'model_revision': MODEL_REVISION",
     "'model_license': MODEL_LICENSE",
@@ -97,6 +104,14 @@ CODE_MARKERS = (
 )
 # Profile-specific learner-facing statements.
 MARKDOWN_MARKERS = (
+    # The guided layer (2026-10-05 review fix MAE-M3)
+    "**Who this notebook is for.**",
+    "**How to use this notebook.**",
+    "**Predict before running:**",
+    "<details><summary>Check your reasoning</summary>",
+    "## Troubleshooting",
+    "## Glossary",
+    "## Conclusion (your notes)",
     "**Capability:** masked-patch reconstruction (masked image modelling), mean-pooled encoder embeddings, a linear probe on those embeddings and bounded continuation of the masked-autoencoding objective",
     "**Apache-2.0** licence",
     "**no user-facing task output**",
@@ -151,7 +166,9 @@ FORBIDDEN_OUTSIDE_MODULE = (
     "subprocess.run([",
     "extractall(",
 )
-INSTALL_CELL_MARKER = "subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', *PINS], check=True)"
+# The one kernel cell (generator /2.2 isolated runtime): it builds the hash-locked environment and routes every later
+# cell to it, so it is the one place `subprocess.run([` and `urllib.request` belong.
+INSTALL_CELL_MARKER = "# dimer: kernel cell"
 
 # ---------------------------------------------------------------------------
 # Shared checks. Everything below is source/structure validation only. Passing
@@ -163,6 +180,8 @@ NOTEBOOK_SPEC = "2.0"
 ALLOWED_PROFILES = {"E2E", "ARTIFACT-INFERENCE", "TASK-INFERENCE", "MULTI-CAPABILITY", "SMOKE"}
 STATUS_TOKENS = ("Candidate", "Release-grade")
 PLACEHOLDER = re.compile(r"\b(TODO|TBD|FIXME)\b|Insert text here|Tooltip:", re.I)
+# Unfilled `@P:NAME@`-style substitution tokens in the notebook or the model card (2026-10-05 review finding MAE-m1).
+SUBSTITUTION_TOKEN = re.compile(r"@[A-Z]+:[A-Z_0-9]+@")
 SHA40 = re.compile(r"^[0-9a-f]{40}$")
 IDENTITY_NAMES = ("MODEL_ID", "MODEL_REVISION", "MODEL_LICENSE", "MODEL_KEY")
 UNSUPPORTED_CLAIMS = re.compile(
@@ -197,9 +216,11 @@ COMMON_CODE_MARKERS = (
     "PINS = [",
     "NOTEBOOK_SOURCE = {",
     "SKIP_INSTALL = os.environ.get('DIMER_NOTEBOOK_CI_PREINSTALLED') == '1'",
-    "subprocess.run([sys.executable, '-m', 'pip', 'install', '-q', *PINS], check=True)",
-    "importlib.metadata.packages_distributions()",
-    "importlib.invalidate_caches()",
+    "'--require-hashes', '--only-binary', ':all:'",
+    "'--managed-python'",
+    "if len(wheel) != UV_BYTES or hashlib.sha256(wheel).hexdigest() != UV_SHA256:",
+    "if hashlib.sha256(LOCK_TEXT.encode('utf-8')).hexdigest() != LOCK_SHA256:",
+    "_ip.input_transformers_cleanup.append(_route_to_isolated_runtime)",
     "platform.python_version()",
     "torch.__version__",
     "MANIFEST = {",
@@ -350,6 +371,7 @@ def validate_model_card() -> None:
     )
     _check(f"base_model: {EXPECTED_MODEL_ID}" in front, "MODEL_CARD.md base_model must equal MODEL_ID")
     _check(not PLACEHOLDER.search(text), "MODEL_CARD.md contains placeholder/scaffolding text")
+    _check(not SUBSTITUTION_TOKEN.search(text), "MODEL_CARD.md contains an unfilled @X:NAME@ substitution token")
     _check(not UNSUPPORTED_CLAIMS.search(text), "MODEL_CARD.md makes an unsupported release/benchmark claim")
     # Fenced code blocks in this card carry `# 1. ...` Python comments; only prose headings count.
     prose = re.sub(r"(?ms)^```.*?^```", "", text)
@@ -528,6 +550,7 @@ def _validate_notebook_structure(path: Path, notebook: dict) -> tuple[list[tuple
     markdown = "\n".join(markdown_parts)
     raw_code = "\n".join(source for _, source, _ in code_cells)
     _check(not PLACEHOLDER.search(raw_code + markdown), f"{path.name}: placeholder text found")
+    _check(not SUBSTITUTION_TOKEN.search(raw_code + markdown), f"{path.name}: unfilled @X:NAME@ substitution token found")
     _check(not UNSUPPORTED_CLAIMS.search(markdown), f"{path.name}: unsupported release/benchmark claim")
     return code_cells, markdown
 
@@ -630,18 +653,14 @@ def _validate_parity(path: Path, notebook: dict, code_cells: list[tuple[int, str
 
 
 def _validate_bootstrap_guard(path: Path, code_cells: list[tuple[int, str, ast.Module]]) -> None:
-    """The stale-import guard must actually raise: `if stale:` whose body raises RuntimeError."""
-    raises = False
-    for _, _, tree in code_cells:
-        for node in ast.walk(tree):
-            if isinstance(node, ast.If) and isinstance(node.test, ast.Name) and node.test.id == "stale":
-                for sub in ast.walk(node):
-                    if isinstance(sub, ast.Raise) and isinstance(sub.exc, ast.Call):
-                        func = sub.exc.func
-                        if isinstance(func, ast.Name) and func.id == "RuntimeError":
-                            raises = True
-    _check(raises, f"{path.name}: install cell must raise RuntimeError when already-imported packages change")
-
+    """RUN1/RUN10/ENV6 (2026-10-05 review fix): nothing is pip-installed into the kernel and no cell asks for a restart.
+    Exactly one cell runs in the kernel (the isolated-environment bootstrap); it reuses a matching environment."""
+    kernel = [source for _, source, _ in code_cells if INSTALL_CELL_MARKER in source]
+    _check(len(kernel) == 1, f"{path.name}: exactly one '{INSTALL_CELL_MARKER}' bootstrap cell is required, found {len(kernel)}")
+    code = "\n".join(source for _, source, _ in code_cells)
+    _check("'-m', 'pip', 'install'" not in code and "pip install" not in code, f"{path.name}: no cell may pip-install into the notebook kernel (RUN10)")
+    _check("Restart the runtime" not in code, f"{path.name}: no cell may ask for a runtime restart (RUN1)")
+    _check("_isolated_environment_ready()" in kernel[0], f"{path.name}: the bootstrap cell must reuse a matching isolated environment")
 
 def _validate_notebook_content(
     path: Path, code_cells: list[tuple[int, str, ast.Module]], markdown: str, embedded: list[int]

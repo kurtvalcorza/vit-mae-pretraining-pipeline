@@ -206,6 +206,9 @@ class ViTMAEPipeline:
         self.weight_size_bytes = weight_size_bytes
         self.adapter: dict[str, Any] | None = None
         self.probe: dict[str, Any] | None = None  # {"classes", "weight", "bias", ...} after fit_probe
+        # Pinned-base values of every tensor adapt() or load_artifact() has changed, kept the first time each is
+        # about to change: every adaptation starts from the verified base, never from a previous run (MAE-M2).
+        self._base_state: dict[str, Any] = {}
         if hasattr(self.model, "parameters"):  # injected fakes in the offline tests carry none
             self.model.eval()
             for param in self.model.parameters():
@@ -478,6 +481,23 @@ class ViTMAEPipeline:
 
     # ------------------------------------------------------------------ adaptation contract
 
+    def _remember_base(self, names: Sequence[str]) -> None:
+        state = self.model.state_dict()
+        for name in names:
+            if name not in self._base_state:
+                self._base_state[name] = state[name].detach().clone()
+
+    def restore_base(self) -> list[str]:
+        """Put the pipeline back to the pinned base: copy the base values into every tensor an earlier adapt() or
+        load_artifact() changed and drop the adapter record and the probe, so `reconstruct`, `features` and a new
+        adapt() read the untouched checkpoint. Returns the names of the restored tensors."""
+        restored = sorted(self._base_state)
+        if restored:
+            self.model.load_state_dict({**self.model.state_dict(), **self._base_state}, strict=True)
+            self.model.eval()
+        self.adapter, self.probe = None, None
+        return restored
+
     def _trainable_names(self, trainable_blocks: int) -> list[str]:
         if isinstance(trainable_blocks, bool) or not isinstance(trainable_blocks, int) or not 0 <= trainable_blocks <= ENCODER_LAYERS:
             raise ValueError(f"trainable_blocks must be an int in 0..{ENCODER_LAYERS}")
@@ -507,8 +527,10 @@ class ViTMAEPipeline:
         AdamW at a fixed learning rate, gradient clipping at 1.0, seeded order and masks, no scheduler. Epoch 0
         records the frozen model's validation reconstruction; every epoch is scored on the validation set with
         its fixed seeded masks, and the epoch with the lowest validation masked MSE is kept. Labels are not used.
-        Transactional: any failure restores the base tensors. The fitted probe (if any) is discarded, because
-        the features it was fitted on no longer exist."""
+        Every call starts from the pinned base: tensors an earlier adapt() or load_artifact() changed are restored
+        first, so epoch 0 is the frozen model whatever ran before. Transactional: any failure puts back the
+        weights, adapter record and probe this call found. The fitted probe (if any) is discarded on success,
+        because the features it was fitted on no longer exist."""
         from .samples import validate_dataset
 
         if isinstance(epochs, bool) or not isinstance(epochs, int) or not 1 <= epochs <= 20:
@@ -522,6 +544,13 @@ class ViTMAEPipeline:
         train_checked = validate_dataset(train, require_labels=False)["records"]
         val_checked = validate_dataset(val, min_records=1, max_records=MAX_EVAL_RECORDS, require_labels=False)["records"] if val else []
         model = self.model
+        # The weights, adapter and probe as this call found them: a failed call puts them back (the transactional
+        # contract), while a successful one starts from the pinned base.
+        current = model.state_dict()
+        previous_state = {k: current[k].detach().clone() for k in self._base_state}
+        previous_adapter, previous_probe = self.adapter, self.probe
+        restored = self.restore_base()
+        self._remember_base(names)
         wanted = set(names)
         for name, param in model.named_parameters():
             param.requires_grad_(name in wanted)
@@ -578,10 +607,11 @@ class ViTMAEPipeline:
             if progress is not None and history:
                 pass
         except BaseException:
-            model.load_state_dict({**model.state_dict(), **initial_state}, strict=True)
+            model.load_state_dict({**model.state_dict(), **initial_state, **previous_state}, strict=True)
             model.eval()
             for param in model.parameters():
                 param.requires_grad_(False)
+            self.adapter, self.probe = previous_adapter, previous_probe
             raise
         model.load_state_dict({**model.state_dict(), **best_state}, strict=True)
         model.eval()
@@ -598,6 +628,8 @@ class ViTMAEPipeline:
             "lr": lr,
             "batch_size": batch_size,
             "seed": seed,
+            "started_from": "pinned base"
+            + (f" (restored {len(restored)} tensors changed by an earlier run)" if restored else ""),
             "n_train": len(train_checked),
             "n_val": len(val_checked),
             "best_epoch": best_epoch,
@@ -672,6 +704,9 @@ class ViTMAEPipeline:
                 raise ValueError(f"artifact tensor {key} is not an adaptable tensor of the base")
             if tuple(value.shape) != tuple(state[key].shape):
                 raise ValueError(f"artifact tensor {key} has shape {tuple(value.shape)}, base has {tuple(state[key].shape)}")
+        self.restore_base()
+        self._remember_base(sorted(model_tensors))
+        state = self.model.state_dict()
         merged = dict(state)
         merged.update({k: v.to(state[k].dtype) for k, v in model_tensors.items()})
         self.model.load_state_dict(merged, strict=True)
