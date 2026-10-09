@@ -1,4 +1,4 @@
-"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.0 §4 standalone carrier).
+"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.2 §4 standalone carrier).
 
 Only the task-specific prose and stage cells live here. Runtime install, the embedded package (six
 modules, carried verbatim in dependency order), and the model pin/stage/verify cells are produced by
@@ -93,7 +93,7 @@ TEMPLATE = {
         "validation-MSE epoch selection, reconstructs and probes the held-out photographs again, re-reconstructs the drawn shapes "
         "with the adapted model, exports the adapter and the probe head as safetensors with a manifest, and reloads that artifact "
         "into a fresh pipeline to verify reconstruction and probe parity. The default path needs no repository clone, no DIMER "
-        "worker or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.0 §5). On CPU the whole "
+        "worker or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.2 §5). On CPU the whole "
         "path took about four minutes of model time on the build workstation's CPU after the downloads (expect longer on a 2-vCPU hosted "
         "runtime); a CUDA runtime is used automatically when present and finishes in a few minutes."
     ),
@@ -785,6 +785,6 @@ TEMPLATE = {
         "- Masked Autoencoders Are Scalable Vision Learners (He, Chen, Xie, Li, Dollár and Girshick, CVPR 2022): https://arxiv.org/abs/2111.06377\n"
         "- The SigLIP zero-shot row in this fleet, sharing the corpus and the code shape: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline\n"
         "- iNaturalist open data (CC0 photographs, each observer's own licence): https://www.inaturalist.org/pages/developers — bucket https://inaturalist-open-data.s3.amazonaws.com/\n"
-        "- DIMER Notebook Specification 2.0 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
+        "- DIMER Notebook Specification 2.2 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
     ),
 }

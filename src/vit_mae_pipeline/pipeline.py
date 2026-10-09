@@ -490,10 +490,13 @@ class ViTMAEPipeline:
     def restore_base(self) -> list[str]:
         """Put the pipeline back to the pinned base: copy the base values into every tensor an earlier adapt() or
         load_artifact() changed and drop the adapter record and the probe, so `reconstruct`, `features` and a new
-        adapt() read the untouched checkpoint. Returns the names of the restored tensors."""
-        restored = sorted(self._base_state)
+        adapt() read the untouched checkpoint. Returns the names of the tensors that differed from the base."""
+        state = self.model.state_dict()
+        # Only tensors whose live value differs from the base count as restored, so a call on an untouched
+        # model reports nothing (t5-base-text2text-pipeline 93a578f).
+        restored = sorted(n for n, base in self._base_state.items() if not bool((state[n] == base).all()))
         if restored:
-            self.model.load_state_dict({**self.model.state_dict(), **self._base_state}, strict=True)
+            self.model.load_state_dict({**state, **self._base_state}, strict=True)
             self.model.eval()
         self.adapter, self.probe = None, None
         return restored

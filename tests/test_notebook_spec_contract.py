@@ -35,8 +35,8 @@ def test_release_notebook_declares_e2e_profile() -> None:
     notebook = _load_notebook()
     dimer = notebook["metadata"]["dimer"]
     assert dimer["notebook_profile"] == "E2E"
-    assert dimer["notebook_spec"] == "2.0"
-    assert dimer["standalone"] is True  # NOTEBOOK_SPEC 2.0 §4; parity in test_notebook_parity.py
+    assert dimer["notebook_spec"] == "2.2"
+    assert dimer["standalone"] is True  # NOTEBOOK_SPEC 2.2 §4; parity in test_notebook_parity.py
 
     registry = REGISTRY.read_text(encoding="utf-8")
     assert "vit_mae_pretraining_colab.ipynb" in registry

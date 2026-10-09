@@ -82,6 +82,7 @@ def test_mae_m1_carried_lock_is_the_committed_lock_and_pins_every_runtime_pin(no
     build.check_lock(build._pins(ROOT), lock_text)
 
 
+@pytest.mark.skipif(sys.platform != "linux", reason="the worker protocol uses Linux pass_fds and a symlinked interpreter (as in rtdetr-detection-pipeline 0feefe5)")
 def test_mae_m1_section_1_is_idempotent_and_keeps_the_live_worker(notebook, tmp_path, monkeypatch, capsys):
     """The real Section 1 cell, run twice with a stand-in interpreter: the matching environment is reused (no
     download) and the live worker — with every variable later cells created — is kept."""
@@ -122,6 +123,15 @@ def test_mae_m1_section_1_is_idempotent_and_keeps_the_live_worker(notebook, tmp_
         runtime.close()
 
 
+def test_mae_m1_routed_cells_do_not_import_ipython(notebook):
+    """Every cell after Section 1 runs in the isolated environment, which has no IPython: a routed cell that imports
+    IPython.display would fail or lose its output there (table-transformer-detection-pipeline 67c5153). The worker
+    injects `display` into the cell namespace instead."""
+    routed = [c["source"] for c in _code_cells(notebook) if "# dimer: kernel cell" not in c["source"]]
+    assert routed and not [s for s in routed if re.search(r"^\s*(from|import) IPython", s, re.M)]
+    assert "_main.__dict__.update(__builtins__=builtins, display=display)" in _cell(notebook, "# dimer: kernel cell")
+
+
 # --- MAE-M2: every adaptation starts from the pinned base -------------------------------------------------------
 
 
@@ -137,7 +147,27 @@ def test_mae_m2_adapt_and_load_artifact_restore_the_base_first():
     load = text[text.index("    def load_artifact(") : text.index("    def from_artifact(")]
     assert load.index("self.restore_base()") < load.index("self._remember_base(sorted(model_tensors))") < load.index("self.model.load_state_dict(merged")
     restore = text[text.index("    def restore_base(") : text.index("    def _trainable_names(")]
-    assert "{**self.model.state_dict(), **self._base_state}" in restore and "self.adapter, self.probe = None, None" in restore
+    assert "{**state, **self._base_state}" in restore and "self.adapter, self.probe = None, None" in restore
+
+
+def test_mae_m2_restore_base_reports_only_tensors_that_differ_from_the_base():
+    """A first adapt() on the untouched base must say "pinned base", not "restored N tensors" (t5-base 93a578f).
+    Runs the real method on a two-tensor stand-in model; skipped where torch is absent (CI)."""
+    torch = pytest.importorskip("torch")
+    from vit_mae_pipeline.pipeline import ViTMAEPipeline
+
+    pipe = object.__new__(ViTMAEPipeline)
+    pipe.model = torch.nn.Linear(2, 2)
+    pipe._base_state, pipe.adapter, pipe.probe = {}, None, None
+    names = ["bias", "weight"]
+    pipe._remember_base(names)
+    assert pipe.restore_base() == []  # remembered but unchanged: nothing to report
+    with torch.no_grad():
+        pipe.model.bias.add_(1.0)
+    pipe.adapter = {"started_from": "pinned base"}
+    assert pipe.restore_base() == ["bias"] and pipe.adapter is None  # only the changed tensor is reported
+    assert torch.equal(pipe.model.bias, pipe._base_state["bias"])
+    assert pipe.restore_base() == []  # nothing differs from the base any more
 
 
 def test_mae_m2_byod_rerun_restores_the_base_and_the_experiment_has_its_own_pipeline(notebook):
