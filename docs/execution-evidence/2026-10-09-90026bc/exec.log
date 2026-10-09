@@ -1,0 +1,77 @@
+[colab] Parsing notebook '/home/kurt/colab-runs/vit-mae-pretraining-pipeline-90026bc-3ec020/vit_mae_pretraining_colab_90026bc_colab-cli-t4.ipynb'...
+[colab] Executing cell 1/16 - Infrastructure: build (or reuse) the isolated environment and route later cells to it...
+{'isolated_environment': '/content/dimer_isolated_env_a5ce92fef4ab', 'reused': False, 'isolated_python': '3.12.12', 'kernel_python': '3.13.15', 'locked_packages': 47, 'setup_seconds': 58}
+{'routed_to': '/content/dimer_isolated_env_a5ce92fef4ab/bin/python', 'worker_pid': 1955, 'worker_reused': False}
+[colab] Executing cell 2/16 - Infrastructure: record the runtime...
+{'notebook_source': {'repository': 'vit-mae-pretraining-pipeline', 'repository_revision': '828abad1fc4c4ed398a5da3b5937a1a0f98b35d3', 'embedded_module': 'src/vit_mae_pipeline/config.py', 'embedded_modules': ['src/vit_mae_pipeline/config.py', 'src/vit_mae_pipeline/metrics.py', 'src/vit_mae_pipeline/model.py', 'src/vit_mae_pipeline/provenance.py', 'src/vit_mae_pipeline/samples.py', 'src/vit_mae_pipeline/pipeline.py'], 'module_sha256': 'b1f4baa397e280d44d104c88b0a6a560c452fec6be5c3271fec5d0d8647bdc26', 'generator': 'build_notebook.py/2.2', 'notebook_spec': '2.2'}, 'python': '3.12.12', 'executable': '/content/dimer_isolated_env_a5ce92fef4ab/bin/python', 'torch': '2.14.0+cu130', 'transformers': '4.57.6', 'numpy': '2.5.3', 'cuda': True}
+[colab] Executing cell 3/16 - vit_mae_pretraining-08...
+[colab] Executing cell 4/16 - vit_mae_pretraining-10...
+[colab] Executing cell 5/16 - vit_mae_pretraining-12...
+[colab] Executing cell 6/16 - vit_mae_pretraining-14...
+[colab] Executing cell 7/16 - vit_mae_pretraining-16...
+[colab] Executing cell 8/16 - vit_mae_pretraining-18...
+[colab] Executing cell 9/16 - Infrastructure: stage and digest-verify the pinned snapshot, then load the model...
+{'model_id': 'facebook/vit-mae-base', 'revision': '25b184bea5538bf5c4c852c79d221195fdd2778d', 'license': 'Apache-2.0', 'files': 4, 'total_bytes': 447674541}
+{'weights_dir': '/content/weights/vit-mae-base', 'fetched': ['README.md', 'config.json', 'preprocessor_config.json', 'model.safetensors']}
+{'verified_files': 4, 'revision': '25b184bea5538bf5c4c852c79d221195fdd2778d'}
+Fast image processor class <class 'transformers.models.vit.image_processing_vit_fast.ViTImageProcessorFast'> is available for this model. Using slow image processor class. To use the fast image processor class set `use_fast=True`.
+{'device': device(type='cuda'), 'source': 'local-snapshot'}
+[colab] Executing cell 10/16 - vit_mae_pretraining-22...
+{'data_source': "iNaturalist CC0 bird photographs (six species): iNaturalist open-data bucket, research-grade CC0 photos selected 2026-09-19 (60 per species) (CC0 1.0 (each photo's own license_code on iNaturalist; observers credited in the records))", 'raw_rows': {'photographs': 360, 'bytes': 39223447, 'observers': 222}, 'splits': {'train': 216, 'validation': 48, 'test': 96}, 'observer_overlap': {'observers': 222, 'in_more_than_one_split': 53}, 'classes': ['american_goldfinch', 'chipping_sparrow', 'dark_eyed_junco', 'house_finch', 'song_sparrow', 'white_throated_sparrow']}
+{'train': {'n': 216, 'label_counts': {'american_goldfinch': 36, 'chipping_sparrow': 36, 'dark_eyed_junco': 36, 'house_finch': 36, 'song_sparrow': 36, 'white_throated_sparrow': 36}, 'image_side': {'min': 342, 'max': 500}, 'digest': 'fa4ce9eb2a674c17...'}}
+{'validation': {'n': 48, 'label_counts': {'american_goldfinch': 8, 'chipping_sparrow': 8, 'dark_eyed_junco': 8, 'house_finch': 8, 'song_sparrow': 8, 'white_throated_sparrow': 8}, 'image_side': {'min': 357, 'max': 500}, 'digest': '481b39b7ed4d165e...'}}
+{'test': {'n': 96, 'label_counts': {'american_goldfinch': 16, 'chipping_sparrow': 16, 'dark_eyed_junco': 16, 'house_finch': 16, 'song_sparrow': 16, 'white_throated_sparrow': 16}, 'image_side': {'min': 408, 'max': 500}, 'digest': '923b58c6f32d7b4d...'}}
+{'example': {'id': 'train-000', 'label': 'house_finch', 'display_name': 'House Finch', 'size': [375, 500], 'observation': 'https://www.inaturalist.org/observations/12337763'}}
+{'probe': 'duplicate id', 'rejected': "duplicate id 'same'"}
+{'probe': 'image over the side ceiling', 'rejected': 'records[0]: image side outside 1..MAX_IMAGE_SIDE=4096 px: (4097, 8)'}
+{'probe': 'one label only', 'rejected': '1 distinct labels; 2..100 are required'}
+{'probe': 'too small', 'rejected': '3 records; 8..20000 are required'}
+[colab] Executing cell 11/16 - vit_mae_pretraining-25...
+{'ceilings': {'DEFAULT_MASK_RATIO': 0.75, 'NUM_PATCHES': 196, 'MAX_IMAGE_SIDE': 4096, 'MIN_IMAGE_SIDE': 16, 'MAX_BATCH': 64, 'MIN_RECORDS': 8, 'MAX_RECORDS': 20000, 'MIN_CLASSES': 2, 'image_contract': '224x224 RGB after processor resize, 196 patches of 16x16', 'device': 'cuda'}}
+{'shapes': ['red_square.ppm', 'green_circle.ppm', 'blue_triangle.ppm'], 'sha256': {'red_square.ppm': 'b38ff0c9131677ed...', 'green_circle.ppm': '2e3e657686a0f6a6...', 'blue_triangle.ppm': 'f0f4c38c7af92b3a...'}, 'manifest_verdict': 'accepted', 'hidden_patches': 147, 'findings': 1}
+red_square.ppm -> {'hidden_patches': 147, 'masked_mse': 0.0005, 'visible_mse': 0.5519}
+green_circle.ppm -> {'hidden_patches': 147, 'masked_mse': 0.0113, 'visible_mse': 0.5696}
+blue_triangle.ppm -> {'hidden_patches': 147, 'masked_mse': 0.0228, 'visible_mse': 0.6383}
+{'checks': {'one_result_per_image': True, 'hidden_patches_match_ratio': True, 'errors_non_negative': True, 'same_seed_same_mask': True, 'other_seed_other_mask': True, 'pipeline_mse_is_model_loss': True, 'embeddings_unit_norm': True}, 'seconds': 0.62, 'frozen_scene': {'masked_mse': 0.0115, 'masked_mse_visible': 0.5866, 'mask_ratio': 0.75}, 'verdict': 'sample-sanity', 'embedding_shape': [3, 768]}
+[colab] Executing cell 12/16 - vit_mae_pretraining-28...
+{'frozen_reconstruction_test': {'masked_mse': 0.2281, 'masked_mse_median': 0.1801, 'masked_mse_visible': 0.2794, 'psnr_masked': 19.3365}, 'n': 96, 'mask_ratio': 0.75, 'verdict': 'measured', 'seconds': 1.8}
+{'mean_patch_fill': {'masked_mse': 0.7652, 'masked_mse_median': 0.6763, 'masked_mse_visible': 0.0, 'psnr_masked': 14.0797}, 'note': 'every hidden patch = the mean colour of the visible patches'}
+{'blur_fill': {'masked_mse': 0.5452, 'masked_mse_median': 0.4753, 'masked_mse_visible': 0.0, 'psnr_masked': 15.5516}, 'note': 'every hidden patch = the mean colour of its visible neighbours'}
+{'definitions': {'masked_mse': "mean over images of the mean squared error between predicted and true pixels over the patches hidden from the encoder, in the processor's normalised pixel space (ImageNet mean / std); lower is better", 'masked_mse_visible': 'the same error over the patches the encoder saw (the decoder also predicts those); lower is better', 'mask_ratio': 'fraction of the patches hidden from the encoder (the seeded random mask)', 'psnr_masked': 'peak signal-to-noise ratio of the hidden patches in 0..1 pixel space, dB; higher is better'}}
+{'frozen_vs_fills': 'frozen below both fills'}
+{'majority_baseline': {'accuracy': 0.167, 'macro_f1': 0.048}, 'n': 96, 'note': "majority floor ('american_goldfinch' for every photograph)"}
+{'colour_neighbour_baseline': {'accuracy': 0.26, 'macro_f1': 0.261}, 'note': 'colour nearest neighbour (216 training photographs)'}
+{'frozen_probe_test': {'accuracy': 0.365, 'macro_f1': 0.365}, 'n': 96, 'verdict': 'measured', 'train_loss': [2.0043, 0.0067], 'standardisation': "training-set mean / std per feature (the paper's affine-free BatchNorm)", 'seconds': 5.0}
+{'knn_on_the_same_features': {'accuracy': 0.219, 'macro_f1': 0.216}, 'note': '5-nearest-neighbour vote on the same features'}
+{'by_species_frozen': {'american_goldfinch': {'n': 16, 'recall': 0.69, 'f1': 0.56}, 'chipping_sparrow': {'n': 16, 'recall': 0.25, 'f1': 0.22}, 'dark_eyed_junco': {'n': 16, 'recall': 0.38, 'f1': 0.36}, 'house_finch': {'n': 16, 'recall': 0.31, 'f1': 0.45}, 'song_sparrow': {'n': 16, 'recall': 0.31, 'f1': 0.33}, 'white_throated_sparrow': {'n': 16, 'recall': 0.25, 'f1': 0.26}}}
+{'frozen_probe_vs_floor': 'above floor'}
+[colab] Executing cell 13/16 - vit_mae_pretraining-31...
+{'epoch': 1, 'train_loss': 0.2456, 'val_masked_mse': 0.2338, 'val_masked_mse_visible': 0.247, 'val_psnr_masked': 19.2288}
+{'epoch': 2, 'train_loss': 0.2445, 'val_masked_mse': 0.2338, 'val_masked_mse_visible': 0.2416, 'val_psnr_masked': 19.2287}
+{'epoch': 3, 'train_loss': 0.2442, 'val_masked_mse': 0.2332, 'val_masked_mse_visible': 0.2439, 'val_psnr_masked': 19.2392}
+{'epoch': 4, 'train_loss': 0.2438, 'val_masked_mse': 0.2334, 'val_masked_mse_visible': 0.2475, 'val_psnr_masked': 19.2356}
+{'epoch': 5, 'train_loss': 0.24, 'val_masked_mse': 0.2337, 'val_masked_mse_visible': 0.2425, 'val_psnr_masked': 19.2308}
+{'trainable_parameters': 40286464, 'total_parameters': 111907840, 'objective': "masked-autoencoding continuation (masked-patch MSE, the checkpoint's own loss)", 'best_epoch': 3, 'selection': 'lowest validation masked MSE (validation split, fixed seeded masks)', 'seconds': 26.3}
+{'started_from': 'pinned base', 'validation_masked_mse_by_epoch': {0: 0.2335, 1: 0.2338, 2: 0.2338, 3: 0.2332, 4: 0.2334, 5: 0.2337}}
+[colab] Executing cell 14/16 - vit_mae_pretraining-34...
+{'reconstruction': {'masked_mse': {'mean_patch_fill': 0.7652, 'blur_fill': 0.5452, 'frozen': 0.2281, 'adapted': 0.228}, 'masked_mse_median': {'mean_patch_fill': 0.6763, 'blur_fill': 0.4753, 'frozen': 0.1801, 'adapted': 0.1827}, 'masked_mse_visible': {'mean_patch_fill': 0.0, 'blur_fill': 0.0, 'frozen': 0.2794, 'adapted': 0.2789}, 'psnr_masked': {'mean_patch_fill': 14.0797, 'blur_fill': 15.5516, 'frozen': 19.3365, 'adapted': 19.3375}}}
+{'reconstruction_delta_vs_frozen': {'masked_mse': -5e-05, 'masked_mse_median': 0.00261, 'masked_mse_visible': -0.00054, 'psnr_masked': 0.00104}}
+{'validation_masked_mse': {'frozen': 0.2335, 'selected_epoch': 3, 'selected': 0.2332, 'rescored': 0.2332}}
+{'probe': {'accuracy': {'majority': 0.167, 'colour_neighbour': 0.26, 'knn_frozen': 0.219, 'knn_adapted': 0.219, 'frozen': 0.365, 'adapted': 0.365}, 'macro_f1': {'majority': 0.048, 'colour_neighbour': 0.261, 'knn_frozen': 0.216, 'knn_adapted': 0.216, 'frozen': 0.365, 'adapted': 0.365}}}
+{'probe_delta_vs_frozen': {'accuracy': 0.0, 'macro_f1': 0.0}}
+{'by_species': {'american_goldfinch': {'n': 16, 'frozen_recall': 0.69, 'adapted_recall': 0.69, 'frozen_f1': 0.56, 'adapted_f1': 0.56}, 'chipping_sparrow': {'n': 16, 'frozen_recall': 0.25, 'adapted_recall': 0.25, 'frozen_f1': 0.22, 'adapted_f1': 0.22}, 'dark_eyed_junco': {'n': 16, 'frozen_recall': 0.38, 'adapted_recall': 0.38, 'frozen_f1': 0.36, 'adapted_f1': 0.36}, 'house_finch': {'n': 16, 'frozen_recall': 0.31, 'adapted_recall': 0.31, 'frozen_f1': 0.45, 'adapted_f1': 0.45}, 'song_sparrow': {'n': 16, 'frozen_recall': 0.31, 'adapted_recall': 0.31, 'frozen_f1': 0.33, 'adapted_f1': 0.33}, 'white_throated_sparrow': {'n': 16, 'frozen_recall': 0.25, 'adapted_recall': 0.25, 'frozen_f1': 0.26, 'adapted_f1': 0.26}}}
+{'paired_per_image': {'better': 51, 'worse': 45, 'same': 0, 'of': 96}}
+{'verdicts': {'frozen_vs_fills': 'frozen below both fills', 'frozen_probe_vs_floor': 'above floor', 'adapted_below_blur_fill': True, 'test_masked_mse_mean': 'improved', 'test_masked_mse_median': 'worse', 'probe_accuracy': 'no change'}}
+{'report': 'outputs/vit_mae_pretraining_evaluation_report.json'}
+[colab] Executing cell 15/16 - vit_mae_pretraining-37...
+{'image': 'red_square.ppm', 'frozen_masked_mse': 0.0005, 'adapted_masked_mse': 0.0006, 'same_mask': True}
+{'image': 'green_circle.ppm', 'frozen_masked_mse': 0.0113, 'adapted_masked_mse': 0.0117, 'same_mask': True}
+{'image': 'blue_triangle.ppm', 'frozen_masked_mse': 0.0228, 'adapted_masked_mse': 0.0219, 'same_mask': True}
+{'scene_after_adaptation': {'masked_mse': 0.0114, 'masked_mse_visible': 0.5838, 'mask_ratio': 0.75}, 'verdict': 'sample-sanity'}
+{'artifact': 'outputs/vit_mae_pretraining_adapter', 'format': 'org.valcorza.vit-mae-base.adapter.v1', 'tensors': 174, 'probe_classes': ['american_goldfinch', 'chipping_sparrow', 'dark_eyed_junco', 'house_finch', 'song_sparrow', 'white_throated_sparrow'], 'bytes': 161190912, 'sha256': '1c361926a2509af2...'}
+Fast image processor class <class 'transformers.models.vit.image_processing_vit_fast.ViTImageProcessorFast'> is available for this model. Using slow image processor class. To use the fast image processor class set `use_fast=True`.
+{'reload_parity': {'max_abs_masked_mse_difference': 0.0, 'identical_reconstructions': 8, 'identical_probe_decisions': 8, 'max_abs_probe_score_difference': 1.1920928955078125e-06, 'of': 8}, 'reloaded_best_epoch': 3, 'reloaded_probe_classes': ['american_goldfinch', 'chipping_sparrow', 'dark_eyed_junco', 'house_finch', 'song_sparrow', 'white_throated_sparrow']}
+['provenance.json', 'sample-data', 'vit_mae_pretraining_adapted_blue_triangle.png', 'vit_mae_pretraining_adapted_green_circle.png', 'vit_mae_pretraining_adapted_red_square.png', 'vit_mae_pretraining_adapter', 'vit_mae_pretraining_evaluation_report.json', 'vit_mae_pretraining_frozen_blue_triangle.png', 'vit_mae_pretraining_frozen_green_circle.png', 'vit_mae_pretraining_frozen_red_square.png', 'vit_mae_pretraining_input_manifest.json', 'vit_mae_pretraining_result.json', 'vit_mae_pretraining_shapes.json', 'vit_mae_pretraining_train.csv']
+[colab] Executing cell 16/16 - vit_mae_pretraining-40...
+{'experiment': 'skipped (RUN_EXPERIMENT = False); the default path above is complete'}
+[colab] Saving notebook with outputs to '/home/kurt/colab-runs/vit-mae-pretraining-pipeline-90026bc-3ec020/vit_mae_pretraining_colab_90026bc_colab-cli-t4_output.ipynb'...
