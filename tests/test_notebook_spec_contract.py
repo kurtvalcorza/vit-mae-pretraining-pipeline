@@ -35,8 +35,8 @@ def test_release_notebook_declares_e2e_profile() -> None:
     notebook = _load_notebook()
     dimer = notebook["metadata"]["dimer"]
     assert dimer["notebook_profile"] == "E2E"
-    assert dimer["notebook_spec"] == "2.0"
-    assert dimer["standalone"] is True  # NOTEBOOK_SPEC 2.0 §4; parity in test_notebook_parity.py
+    assert dimer["notebook_spec"] == "2.2"
+    assert dimer["standalone"] is True  # NOTEBOOK_SPEC 2.2 §4; parity in test_notebook_parity.py
 
     registry = REGISTRY.read_text(encoding="utf-8")
     assert "vit_mae_pretraining_colab.ipynb" in registry
@@ -80,7 +80,8 @@ def test_release_notebook_exercises_the_adaptation_contract() -> None:
         "frozen_rec = pipe.evaluate_reconstruction(test_records, seed=0)",
         "frozen_probe = pipe.evaluate(test_records)",
         "adapt_result = pipe.adapt(train_records, val_records, epochs=EPOCHS, lr=LEARNING_RATE,",
-        "assert val_history[adapt_result['best_epoch']] <= val_history[0]",
+        # The selector check stays a hard check; it raises with a message (2026-10-05 fixes).
+        "if val_history[adapt_result['best_epoch']] > val_history[0]:",
         "adapted_rec = pipe.evaluate_reconstruction(test_records, seed=0)",
         "pipe.save_artifact(artifact_dir,",
         "reloaded = ViTMAEPipeline.from_artifact(artifact_dir, weights_dir=WEIGHTS_DIR, device=pipe.device)",  # noqa: E501
