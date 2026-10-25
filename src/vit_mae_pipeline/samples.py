@@ -1,9 +1,10 @@
 """Image dataset contract for continuing the masked-autoencoding pretraining and reading the encoder through a
 linear probe: the pinned iNaturalist bird sample, validation, seeded splitting, BYOD loaders and CSV export.
 
-The default dataset is **real** and out of the checkpoint's ImageNet-1k pretraining domain in the way that
-matters here — fine-grained wildlife: 360 CC0-licensed, research-grade iNaturalist photographs of six common
-North American birds (60 per species, one per observer per species; four small sparrows, a junco and two
+The default dataset is **real** fine-grained wildlife, and it overlaps the checkpoint's ImageNet-1k pretraining
+classes in part: house finch (n01532829) and junco (n01534433) are ImageNet-1k classes, while the goldfinch and
+the sparrows are not (timm synset lists). 360 CC0-licensed, research-grade iNaturalist photographs of six common
+North American birds (60 per species, one photograph per observer within each species; four small sparrows, a junco and two
 finches), the fleet's shared sample, pinned here by photo id, byte size and SHA-256 of the served `medium`
 JPEG. Every file is fetched from the iNaturalist open-data bucket at run time and refused on any byte-size or
 SHA-256 mismatch; the repository redistributes none of the photographs. Each record keeps the observation id

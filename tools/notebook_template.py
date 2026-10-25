@@ -1,4 +1,4 @@
-"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.2 §4 standalone carrier).
+"""Per-repository template for tools/build_notebook.py (NOTEBOOK_SPEC 2.5 §4 standalone carrier).
 
 Only the task-specific prose and stage cells live here. Runtime install, the embedded package (six
 modules, carried verbatim in dependency order), and the model pin/stage/verify cells are produced by
@@ -93,7 +93,7 @@ TEMPLATE = {
         "validation-MSE epoch selection, reconstructs and probes the held-out photographs again, re-reconstructs the drawn shapes "
         "with the adapted model, exports the adapter and the probe head as safetensors with a manifest, and reloads that artifact "
         "into a fresh pipeline to verify reconstruction and probe parity. The default path needs no repository clone, no DIMER "
-        "worker or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.2 §5). On CPU the whole "
+        "worker or service, no credential, no upload dialog and no configuration edit (NOTEBOOK_SPEC 2.5 §5). On CPU the whole "
         "path took about four minutes of model time on the build workstation's CPU after the downloads (expect longer on a 2-vCPU hosted "
         "runtime); a CUDA runtime is used automatically when present and finishes in a few minutes."
     ),
@@ -120,7 +120,7 @@ TEMPLATE = {
         "patch tokens (the paper's own readout of representation quality) — and neither is calibrated or a human judgement.\n\n"
         "What this notebook adds to inference is **continuation of the pre-training objective on a photograph set**. The "
         "dataset is real: 360 CC0-licensed, research-grade iNaturalist photographs of six common North American birds "
-        "(**CC0 1.0**; three sparrows, a junco and two finches, 60 per species, one per observer), pinned by photo id, "
+        "(**CC0 1.0**; three sparrows, a junco and two finches, 60 per species, at most one per observer within each species; 53 of 222 observers contribute to more than one split), pinned by photo id, "
         "byte size and SHA-256 and fetched from the project's open-data bucket at run time. The honest question is narrow: does "
         "a bounded continuation of masked autoencoding — the decoder and the last two encoder blocks, on 216 photographs, "
         "with the epoch chosen on the validation masked MSE — move the reconstruction error on an image-disjoint test split, "
@@ -140,7 +140,7 @@ TEMPLATE = {
     "guided": {
         "opening": [
             (
-                "**Who this notebook is for.** A learner who knows basic Python, has used Colab or Jupyter, and wants to see what a masked autoencoder does, how to read its reconstruction loss and its features honestly, and what continuing its pre-training on a small photograph set does — and does not — change. No prior experience with masked autoencoders or fine-tuning is assumed; each term is explained where it first matters and again in the **Glossary** at the end. CPU is adequate (about four minutes of model time); a GPU is faster.\n\n**Input → Model → Output.**\n\n| | Reconstruction | Representation | Bounded continuation |\n|---|---|---|---|\n| Input | one image (16..4,096 px), resized to 224 × 224, with 75 % of its 196 patches hidden by a seeded random mask | photographs with nothing hidden | unlabelled photographs (216 training and 48 validation in the sample) |\n| Model | ViT-MAE base: a 12-layer encoder over the visible patches and an 8-layer decoder that predicts the hidden ones | the encoder's mean-pooled patch tokens, read by a linear probe | the decoder and the last two encoder blocks trained on the model's own masked-patch loss; validation MSE chooses the epoch |\n| Output | a reconstruction, its masked and visible MSE and PSNR — the model's own objective, not a perceptual judgement | probe accuracy and macro F1 beside three non-neural classifiers | a safetensors adapter, and held-out reconstruction and probe numbers beside the frozen model |\n\n**How to use this notebook.** Choose a runtime (CPU works; a GPU is faster), then **Runtime → Run all**. Run all completes in one pass: Section 1 installs nothing into the notebook's own Python, so no restart is needed. Sections 1–3 are **infrastructure** — the isolated environment, the carried package (including the 360-photograph table) and the model snapshot — and their cells are collapsed; you may run them without studying them. The learning path starts in Section 4. Form fields (`# @param`) are the only values meant to be edited, and the defaults reproduce the recorded run. Before each principal result the notebook asks you to **Predict**; after it come **What to notice** and a collapsible **Check your reasoning** with a worked answer that names the run it quotes — the Kaggle T4 release run of 21 September 2026. Section 10 is a **change-one-thing experiment**, off by default. **Troubleshooting**, a **Glossary** and a **Conclusion** template are at the end. Writing your predictions down is optional.\n\n**Roadmap:** 1–3 infrastructure → 4 the photographs, validation and a stratified split *(evaluation practice)* → 5 masking and reconstruction through the inference contract *(core concept: what an MAE predicts)* → 6 two fills, three classifiers and the frozen model *(evaluation practice)* → 7 bounded continuation and validation selection *(core concept)* → 8 held-out evaluation, mean and median *(evaluation practice)* → 9 re-reconstruct, export and reload *(engineering)* → 10 change one thing (optional) → conclude."
+                "**Who this notebook is for.** A learner who knows basic Python, has used Colab or Jupyter, and wants to see what a masked autoencoder does, how to read its reconstruction loss and its features honestly, and what continuing its pre-training on a small photograph set does — and does not — change. No prior experience with masked autoencoders or fine-tuning is assumed; each term is explained where it first matters and again in the **Glossary** at the end. CPU is adequate (about four minutes of model time); a GPU is faster.\n\n**Input → Model → Output.**\n\n| | Reconstruction | Representation | Bounded continuation |\n|---|---|---|---|\n| Input | one image (16..4,096 px), resized to 224 × 224, with 75 % of its 196 patches hidden by a seeded random mask | photographs with nothing hidden | unlabelled photographs (216 training and 48 validation in the sample) |\n| Model | ViT-MAE base: a 12-layer encoder over the visible patches and an 8-layer decoder that predicts the hidden ones | the encoder's mean-pooled patch tokens, read by a linear probe | the decoder and the last two encoder blocks trained on the model's own masked-patch loss; validation MSE chooses the epoch |\n| Output | a reconstruction, its masked and visible MSE and PSNR — the model's own objective, not a perceptual judgement | probe accuracy and macro F1 beside three non-neural classifiers | a safetensors adapter, and held-out reconstruction and probe numbers beside the frozen model |\n\n**How to use this notebook.** Choose a runtime (CPU works; a GPU is faster), then **Runtime → Run all**. Run all completes in one pass: Section 1 installs nothing into the notebook's own Python, so no restart is needed. Sections 1–3 are **infrastructure** — the isolated environment, the carried package (including the 360-photograph table) and the model snapshot — and their cells are collapsed; you may run them without studying them. The learning path starts in Section 4. Form fields (`# @param`) are the only values meant to be edited, and the defaults reproduce the recorded run. Before each principal result the notebook asks you to **Predict**; after it come **What to notice** and a collapsible **Check your reasoning** with a worked answer that names the run it quotes — the Colab T4 run of blob `78c4c1bd` (2026-10-09) (commit `90026bc`), which reproduced every figure of the Kaggle T4 run of blob `06bc11b5` (2026-09-21); \"the build record\" means the build-workstation CPU run of the package API on 2026-09-21. Both are in `docs/release-verification.md`; neither was re-run for this revision. Section 10 is a **change-one-thing experiment**, off by default. **Troubleshooting**, a **Glossary** and a **Conclusion** template are at the end. Writing your predictions down is optional.\n\n**Roadmap:** 1–3 infrastructure → 4 the photographs, validation and a stratified split *(evaluation practice)* → 5 masking and reconstruction through the inference contract *(core concept: what an MAE predicts)* → 6 two fills, three classifiers and the frozen model *(evaluation practice)* → 7 bounded continuation and validation selection *(core concept)* → 8 held-out evaluation, mean and median *(evaluation practice)* → 9 re-reconstruct, export and reload *(engineering)* → 10 change one thing (optional) → conclude."
             )
         ]
     },
@@ -165,6 +165,11 @@ TEMPLATE = {
     ),
     "prerequisites": [
         "- **Learner:** basic Python and Colab or Jupyter familiarity; no prior experience with masked autoencoders or fine-tuning. The notebook explains masking, masked and visible MSE, PSNR, the linear probe, k-NN, validation selection and the adapter where they are first used; the Glossary repeats them.",
+        "- **Overlap with the training data:** the MAE checkpoint was pre-trained, without labels, on ImageNet-1k [1] (model card). "
+        "Two of the six species are ImageNet-1k classes — house finch (`n01532829`) and junco (`n01534433`) — while the American "
+        "goldfinch (a 21k synset) and the three sparrows are not (verified against the timm ImageNet synset lists). Whether any of "
+        "these iNaturalist photographs are themselves in ImageNet is not verified; the image distribution of two classes was in "
+        "pre-training, so the probe and the reconstruction numbers are partly in-domain, not out-of-domain.",
         "- **Runtime:** a fresh supported **Linux x86_64** runtime (Google Colab, Kaggle or Linux Jupyter). Section 1 builds its own Python 3.12.12 environment from a hash-locked list of manylinux wheels, so the kernel's own Python version does not matter and nothing is installed into it. The default path runs on CPU (float32) and uses CUDA automatically when available. CPU is slow but adequate: the build record measured about 4.4 s to reconstruct the 96 test photographs, 28.8 s to embed the 312 photographs and fit the probe, and 159.1 s for the 5 epochs of continuation (216 photographs per epoch through the encoder and decoder, the decoder and the last two encoder blocks training) including the per-epoch validation reconstruction, so the whole default path is about four minutes of model time on the build workstation's CPU with the snapshot and photographs already cached (a 2-vCPU hosted runtime will be several times slower); a hosted T4 finishes it in a few minutes. The pinned `torch==2.14.0` install and the 448 MB checkpoint are the large downloads of the run; the photographs add about 39 MB.",
         "- **Knowledge:** basic Python and PIL; what a mean squared error and a PSNR are; what a masked autoencoder hides and predicts; what accuracy and macro F1 measure and why a linear probe is a readout of features rather than a product classifier.",
         "- **Data contract:** records are `{id, image, label}` — a PIL image or a file decodable by Pillow with sides between `MIN_IMAGE_SIDE` (16) and `MAX_IMAGE_SIDE` (4096) px, and a label of at most 64 plain characters (used by the probe only). Ids match `[A-Za-z0-9_.:-]{1,64}` and are unique; a training split needs 8..20,000 records over 2..100 labels, and every label needs one training, one validation and one test photograph, so with the default 15 % + 20 % stratified hold-out the effective BYOD minimum is **12 photographs for two labels** (6 per label), 15 for three, and 4 per label from four labels up (`min_byod_records(n_labels)`); splitting is stratified per label after pixel-digest de-duplication so no photograph lands in two splits. Every image is resized to 224×224 by the processor. BYOD accepts one zip of images plus a `labels.csv` in that shape.",
@@ -375,7 +380,7 @@ TEMPLATE = {
         },
         {
             "md": (
-                "**What to notice:** the masked and visible MSE per shape, and `hidden_patches` (147 of 196 for each).\n\n<details><summary>Check your reasoning</summary>Much lower. In the CPU build record the three drawn shapes scored masked MSE 0.0005, 0.0113 and 0.0228 against 0.2281 for the test photographs: a hidden patch of a flat-coloured drawing on a white ground is predictable from its visible neighbours, while a photograph's hidden feathers and background are not. A low error on drawings says the task is easy, not that the model is good.</details>"
+                "**What to notice:** the masked and visible MSE per shape, and `hidden_patches` (147 of 196 for each).\n\n<details><summary>Check your reasoning</summary>Much lower. In the CPU build record the three drawn shapes scored masked MSE 0.0005, 0.0113 and 0.0228 against 0.2281 for the test photographs in the hosted T4 runs: a hidden patch of a flat-coloured drawing on a white ground is predictable from its visible neighbours, while a photograph's hidden feathers and background are not. A low error on drawings says the task is easy, not that the model is good.</details>"
             ),
         },
         {
@@ -434,7 +439,7 @@ TEMPLATE = {
         },
         {
             "md": (
-                "**What to notice:** the masked MSE mean and median against both fills, the probe against the three classifiers, and the per-species recall.\n\n<details><summary>Check your reasoning</summary>In the Kaggle T4 release run (21 September 2026) the frozen model's masked MSE was 0.2281 (median 0.1801) against 0.5452 for the blur fill and 0.7652 for the mean fill, PSNR 19.3 dB on the hidden patches. The probe scored accuracy 0.365 and macro F1 0.365 against the majority floor's 0.167, the colour neighbour's 0.260 and the k-NN's 0.219 — above every baseline, but with a 95 % interval of roughly ±0.10 on 96 photographs, and far from a classifier you would ship.</details>"
+                "**What to notice:** the masked MSE mean and median against both fills, the probe against the three classifiers, and the per-species recall.\n\n<details><summary>Check your reasoning</summary>In the Colab T4 run of blob `78c4c1bd` (2026-10-09) the frozen model's masked MSE was 0.2281 (median 0.1801) against 0.5452 for the blur fill and 0.7652 for the mean fill, PSNR 19.3 dB on the hidden patches. The probe scored accuracy 0.365 and macro F1 0.365 against the majority floor's 0.167, the colour neighbour's 0.260 and the k-NN's 0.219 — above every baseline, but with a 95 % interval of roughly ±0.10 on 96 photographs, and far from a classifier you would ship.</details>"
             ),
         },
         {
@@ -453,7 +458,7 @@ TEMPLATE = {
                 "re-running Sections 7–8 with a changed field repeats the comparison validly. The fitted "
                 "probe is discarded, because the features it was fitted on no longer exist.\n\n"
                 "Watch the numbers move very little: the pre-trained model has seen 1,600 epochs of ImageNet, and 216 "
-                "photographs of birds are not a new domain to it. The build record's learning-rate sweep found `1e-4` makes "
+                "photographs of birds are not a new domain to it (two of the six species are ImageNet-1k classes). The build record's learning-rate sweep found `1e-4` makes "
                 "the validation masked MSE **worse** from the first epoch (batches of eight with random masks are a noisy "
                 "gradient), and `1e-5` moves it from 0.2335 to 0.2332 at epoch 3 of 5. That is the honest "
                 "default: the configuration that did not hurt, chosen on the validation split. To compare a change side by side "
@@ -487,7 +492,7 @@ TEMPLATE = {
         },
         {
             "md": (
-                '**What to notice:** the validation masked MSE per epoch and `best_epoch`.\n\n<details><summary>Check your reasoning</summary>Barely. In the release run validation masked MSE went 0.2335 → 0.2338 → 0.2338 → 0.2332 → 0.2334 → 0.2337 and epoch 3 was kept — a gain of 0.0003 on 48 photographs, with no dispersion estimate. A model trained for 1,600 ImageNet epochs is already converged on natural photographs.</details>'
+                '**What to notice:** the validation masked MSE per epoch and `best_epoch`.\n\n<details><summary>Check your reasoning</summary>Barely. In the Colab T4 run of `78c4c1bd` validation masked MSE went 0.2335 → 0.2338 → 0.2338 → 0.2332 → 0.2334 → 0.2337 and epoch 3 was kept — a gain of 0.0003 on 48 photographs, with no dispersion estimate. A model trained for 1,600 ImageNet epochs is already converged on natural photographs.</details>'
             ),
         },
         {
@@ -564,7 +569,7 @@ TEMPLATE = {
         },
         {
             "md": (
-                "**What to notice:** the mean and median rows of `reconstruction_delta_vs_frozen`, `paired_per_image`, the probe and the `verdicts`.\n\n<details><summary>Check your reasoning</summary>No. In the release run the mean test masked MSE moved from 0.2281 to 0.2280 (−0.00005) while the median rose from 0.1801 to 0.1827 (+0.0026) — about fifty times larger and in the opposite direction: the typical photograph got slightly worse while the mean stayed flat. The probe stayed at 0.365 accuracy and 0.365 macro F1. The selector's guarantee is about the 48 validation photographs, not the test split; a single metric does not characterise the change.</details>"
+                "**What to notice:** the mean and median rows of `reconstruction_delta_vs_frozen`, `paired_per_image`, the probe and the `verdicts`.\n\n<details><summary>Check your reasoning</summary>No. In the Colab T4 run of `78c4c1bd` the mean test masked MSE moved from 0.2281 to 0.2280 (−0.00005) while the median rose from 0.1801 to 0.1827 (+0.0026) — about fifty times larger and in the opposite direction: the typical photograph got slightly worse while the mean stayed flat. The probe stayed at 0.365 accuracy and 0.365 macro F1. The selector's guarantee is about the 48 validation photographs, not the test split; a single metric does not characterise the change.</details>"
             ),
         },
         {
@@ -642,7 +647,7 @@ TEMPLATE = {
         },
         {
             "md": (
-                '**What to notice:** `frozen_masked_mse` against `adapted_masked_mse` for each shape (`same_mask` should be true), and the reload parity line.\n\n<details><summary>Check your reasoning</summary>In the CPU build record the three shapes moved from 0.0005 / 0.0113 / 0.0228 to 0.0006 / 0.0117 / 0.0219 under the same masks — two slightly worse, one slightly better — and three drawings cannot tell you which is typical — record the change as a finding about the continuation outside its corpus, not as a measurement. Reload parity held in the release run: identical reconstructions and probe decisions on eight of eight test photographs.</details>'
+                '**What to notice:** `frozen_masked_mse` against `adapted_masked_mse` for each shape (`same_mask` should be true), and the reload parity line.\n\n<details><summary>Check your reasoning</summary>In the CPU build record the three shapes moved from 0.0005 / 0.0113 / 0.0228 to 0.0006 / 0.0117 / 0.0219 under the same masks — two slightly worse, one slightly better — and three drawings cannot tell you which is typical — record the change as a finding about the continuation outside its corpus, not as a measurement. Reload parity held in the Colab T4 run of `78c4c1bd`: identical reconstructions and probe decisions on eight of eight test photographs.</details>'
             ),
         },
         {
@@ -702,20 +707,20 @@ TEMPLATE = {
                 "masked MSE worse from the first epoch — batches of eight with random masks are a noisy gradient — so the "
                 "selector keeps epoch 0, the frozen model, and the experiment's adapted row equals its control. That is the "
                 "selector doing its job. With a lower mask ratio the encoder sees more of each image, so both the control and "
-                "the adapted masked MSE fall; compare each run only with its own control. No experiment run is recorded on the "
-                "release runtime.</details>"
+                "the adapted masked MSE fall; compare each run only with its own control. No experiment run is recorded on a "
+                "hosted runtime.</details>"
             ),
         },
     ],
     "closing": (
         "## Interpretation and limits\n\n"
-        "The frozen model reconstructs hidden patches of photographs it was never trained on far better than the two "
-        "non-neural fills (masked MSE 0.2281 against 0.5452 and 0.7652 in the build record), and its "
+        "The frozen model reconstructs hidden patches of photographs outside its training set (two of the six species are ImageNet-1k classes) far better than the two "
+        "non-neural fills (masked MSE 0.2281 against 0.5452 and 0.7652 in the recorded hosted T4 runs), and its "
         "mean-pooled features carry enough to lift a linear probe over six bird species above the majority floor, the colour "
         "neighbour and a k-NN on the same features (0.365 against 0.167, 0.260 and 0.219) — while "
         "still being, as the paper says of MAE features, a poor linear-probe backbone until fine-tuned. A bounded continuation "
         "of the masked-autoencoding objective on 216 photographs, chosen on the validation split, moved the held-out mean "
-        "masked MSE from 0.2281 to 0.2280 while the median rose from 0.1801 to 0.1827 (Kaggle T4 release run, 21 September "
+        "masked MSE from 0.2281 to 0.2280 while the median rose from 0.1801 to 0.1827 (Colab T4 run of blob `78c4c1bd`, 9 October "
         "2026), left the probe at 0.365, and exported a 161 MB adapter that reloads to identical reconstructions and probe "
         "decisions. That is the claim: the adaptation contract works end to end on a real photograph set, the selector is "
         "honest enough to keep the frozen model when nothing beats it on validation — a guarantee about the validation split, "
@@ -751,6 +756,7 @@ TEMPLATE = {
         "`USE_BYOD` and `BYOD_PATH` in Section 4, then **Run after** from Section 4; bring images from an unfamiliar domain "
         "and read the fills before the adapted number.\n\n"
         "## Troubleshooting\n\n"
+'- **Where the environment lives** — Section 1 builds it in a folder named `dimer_isolated_env_<lock digest>` in the working directory. Set the environment variable `DIMER_ISOLATED_ENV` before Section 1 to build it somewhere else.\n'
 '- **Section 1 stops with "This notebook needs a Linux x86_64 runtime"** — you are on Windows, macOS or an ARM machine. Use Google Colab, Kaggle or a Linux x86_64 Jupyter server.\n- **The uv wheel fails its size/SHA-256 check, or a download in Section 1 times out** — run Section 1 again; a complete environment is reused, an incomplete one is finished. If it repeats, the network is blocking or altering `files.pythonhosted.org` or `pypi.org`.\n- **"The isolated environment\'s Python process exited"** — usually out of memory. Restart the session and choose **Run all**; leave the optional experiment off on a small runtime.\n- **You re-ran Section 1 on its own** — nothing is lost: it keeps the running worker and every variable, so the cells after it keep working. After a session restart, run from the top.\n- **Section 3 reports a size or SHA-256 mismatch, or cannot reach the Hub** — the message names the file. Delete it from the snapshot folder Section 3 prints and run Section 3 again; the snapshot comes from `huggingface.co`.\n- **Section 4 cannot fetch a photograph, or one fails its digest** — `fetch_corpus` names it; the default path needs `inaturalist-open-data.s3.amazonaws.com`. Run Section 4 again (cached photographs are re-hashed); delete `weights/inat-birds/` if a cached file is corrupt.\n- **Out of memory** — lower `BATCH_SIZE` in Section 7, or restart the session and choose **Run all**; leave Section 10 off on a small runtime.\n- **BYOD: "BYOD_PATH … does not exist"** — the path is relative to the working directory printed in the message.\n- **BYOD: "the upload dialog exists only in Google Colab"** — on Kaggle or Jupyter, put the zip in the runtime (or attach it as a dataset) and set `BYOD_PATH`.\n- **BYOD: "Upload exactly one .zip file"** — the dialog was cancelled or several files were chosen; run the cell again.\n- **BYOD: "labels.csv line N (file …): that image file is not in the dataset"** — fix the `file` column of that row, or add the image to the zip.\n- **BYOD: "… Pillow cannot decode the image"** — the file on that line is corrupt or not an image.\n- **BYOD: "split leaves no train/validation photograph for labels …" or "… training records"** — add photographs; the message names the minimum for your label count.\n'
         "## Glossary\n\n"
         "- **Mask / mask ratio** — the random set of hidden patches; 75 % of 196 by default, seeded per photograph here.\n"
@@ -777,14 +783,12 @@ TEMPLATE = {
         "- After continuation (epoch ___ kept): masked MSE ___ (median ___), ___ photographs better and ___ worse; probe ___.\n"
         "- What I would need before claiming continuation helps: ___ (for example an unfamiliar domain, more test images, several seeds).\n\n"
         "## References\n\n"
-        "- Repository README: https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/README.md\n"
-        "- Repository model card: https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/MODEL_CARD.md\n"
-        "- Sample dataset card (synthetic shapes): https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/examples/sample-data/DATASET_CARD.md\n"
-        "- Upstream model: https://huggingface.co/{MODEL_ID}\n"
-        "- Upstream code: https://github.com/facebookresearch/mae — served through https://github.com/huggingface/transformers (`ViTMAEForPreTraining`)\n"
-        "- Masked Autoencoders Are Scalable Vision Learners (He, Chen, Xie, Li, Dollár and Girshick, CVPR 2022): https://arxiv.org/abs/2111.06377\n"
-        "- The SigLIP zero-shot row in this fleet, sharing the corpus and the code shape: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline\n"
-        "- iNaturalist open data (CC0 photographs, each observer's own licence): https://www.inaturalist.org/pages/developers — bucket https://inaturalist-open-data.s3.amazonaws.com/\n"
-        "- DIMER Notebook Specification 2.2 and Model Card Specification 1.1 (fleet specs in the ml-worker repository)"
+        "[1] K. He, X. Chen, S. Xie, Y. Li, P. Dollár, and R. Girshick, \"Masked autoencoders are scalable vision learners,\" in *Proc. IEEE/CVF Conf. Comput. Vis. Pattern Recognit. (CVPR)*, 2022. [Online]. Available: https://arxiv.org/abs/2111.06377\n\n"
+        "[2] iNaturalist, \"iNaturalist open data\" (CC0 photographs, each observer's own licence). [Online]. Available: https://www.inaturalist.org/pages/developers; bucket: https://inaturalist-open-data.s3.amazonaws.com/\n\n"
+        "[3] Meta AI Research, \"mae,\" GitHub repository, served through Hugging Face transformers (`ViTMAEForPreTraining`). [Online]. Available: https://github.com/facebookresearch/mae, https://github.com/huggingface/transformers\n\n"
+        "[4] Upstream model checkpoint. [Online]. Available: https://huggingface.co/{MODEL_ID}\n\n"
+        "[5] K. Valcorza, \"vit-mae-pretraining-pipeline,\" README and sample dataset card. [Online]. Available: https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/README.md, https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/examples/sample-data/DATASET_CARD.md; model card: https://github.com/kurtvalcorza/vit-mae-pretraining-pipeline/blob/main/MODEL_CARD.md\n\n"
+        "[6] K. Valcorza, \"siglip-v1-zero-shot-pipeline,\" the SigLIP zero-shot row sharing the corpus and the code shape. [Online]. Available: https://github.com/kurtvalcorza/siglip-v1-zero-shot-pipeline\n\n"
+        "[7] DIMER Notebook Specification 2.5 and Model Card Specification 1.1, fleet specs in the ml-worker repository."
     ),
 }
