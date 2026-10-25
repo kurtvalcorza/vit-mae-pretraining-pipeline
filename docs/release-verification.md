@@ -186,6 +186,8 @@ fleet's convention for a bounded adaptation) — chosen as the configuration tha
 
 ## Current status
 
+**Pending (tier C review fixes, 2026-10-25):** `tutorials/vit_mae_pretraining_colab.ipynb` blob `d0fc9dfe6d53632b2317a5007e1fb6e4bbb53003`, generated at `eda1e93` (T109-1..T109-4). It changes markdown, the use notice, `metadata.dimer` and the `NOTEBOOK_SOURCE` record only. Status **Candidate**; its hosted Colab T4 run is pending, and the runs below describe earlier blobs (REL14).
+
 **Candidate.** The 2026-09-21 Kaggle T4 run of blob `06bc11b5` (merged as `6ba175f`) needed a manual restart after the install cell (14/14 ok (1 restart after install cell)), so it is not a one-pass `Run all` and not promotion evidence (review finding MAE-M1, 2026-10-05). The review-fix blob `78c4c1bd8dfc` (commit `90026bc`) completed one pass with no restart and 0 errors on a fresh Colab Tesla T4 on 2026-10-09 (Colab CLI 0.7.4 sequential execution, 16/16 code cells, 291.1 s; every worked-answer figure reproduced). REL12 BYOD exercise (path-based and upload) and the optional Section 10 experiment are pending on a hosted runtime, so the status stays Candidate (REL14). The 2026-09-21 rows and the CPU rows above remain history. Any later change to the carried modules or to the notebook produces a new blob that needs its own clean run.
 
 Facts a reviewer should weigh: the frozen model reconstructs hidden patches far below both non-neural fills (masked
