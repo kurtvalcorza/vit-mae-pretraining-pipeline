@@ -254,6 +254,9 @@ TEMPLATE = {
                 "    raise BYODRefusal(file_name, reason + ' (the earlier results of this session were removed).') from None\n\n\n"
                 'if USE_BYOD:\n'
                 '    # DAT20: every problem with your input (path, upload, archive, labels.csv, photographs, split) stops here as one Refused: line.\n'
+                '    # Caught: ValueError (the loader and split_dataset refuse bad content with it, an undecodable photograph included) and,\n'
+                '    # only around load_byod_dataset, OSError and zipfile.BadZipFile (the dataset cannot be read). TypeError and KeyError are\n'
+                '    # not caught: the loader always builds complete records, so either is a bug and keeps its traceback.\n'
                 "    file_name = (Path(BYOD_PATH.strip()).name or BYOD_PATH.strip()) if BYOD_PATH.strip() else '(no file)'\n"
                 '    try:\n'
                 '        if BYOD_PATH.strip():\n'
@@ -274,11 +277,14 @@ TEMPLATE = {
                 "            byod_zip = Path('work') / 'byod.zip'\n"
                 '            byod_zip.parent.mkdir(parents=True, exist_ok=True)\n'
                 '            byod_zip.write_bytes(payload)\n'
-                '        records = load_byod_dataset(byod_zip)\n'
+                '        try:\n'
+                '            records = load_byod_dataset(byod_zip)\n'
+                '        except (OSError, zipfile.BadZipFile) as exc:\n'
+                "            raise BYODRefusal(file_name, f'the dataset cannot be read ({{type(exc).__name__}}: {{exc}}); give a .zip or a folder holding labels.csv and the images.') from None\n"
                 '        splits = split_dataset(records, seed=SPLIT_SEED)\n'
                 '    except BYODRefusal as exc:\n'
                 '        refuse_byod(exc.file_name, exc.reason)\n'
-                '    except (TypeError, ValueError, KeyError, OSError, zipfile.BadZipFile) as exc:\n'
+                '    except ValueError as exc:\n'
                 '        refuse_byod(file_name, exc)\n'
                 "    data_source = 'BYOD (' + file_name + ')'\n"
                 '    display_names = {{}}\n'
@@ -298,7 +304,7 @@ TEMPLATE = {
                 "    dataset_manifests = {{name: validate_dataset(part, min_records=MIN_RECORDS if name == 'train' else 1) for name, part in splits.items()}}\n"
                 "    splits = {{name: manifest['records'] for name, manifest in dataset_manifests.items()}}\n"
                 '    disjoint = check_split_disjoint(splits)\n'
-                'except (TypeError, ValueError, KeyError) as exc:\n'
+                'except ValueError as exc:  # validate_dataset and check_split_disjoint refuse with ValueError; anything else is a bug\n'
                 '    if not USE_BYOD:\n'
                 '        raise  # the pinned sample failing its contract is a genuine error, not a refusal\n'
                 '    refuse_byod(file_name, exc)\n'

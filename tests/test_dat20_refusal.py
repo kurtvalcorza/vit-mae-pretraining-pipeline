@@ -301,3 +301,68 @@ def test_default_path_contract_failure_is_not_a_refusal(cells, tmp_path, monkeyp
         exec(compile(_cell_code(cells, None), "<section 4>", "exec"), ns)
     assert not getattr(caught.value, "dimer_refusal", False)
     assert set(EARLIER) <= set(ns)
+
+
+# --- the catches are narrow: only bad input is refused; an internal TypeError/KeyError/OSError keeps its traceback --
+
+
+def test_the_byod_catches_are_narrow_in_the_notebook_source(cells):
+    import re
+
+    source = _cell_code(cells, None)
+    branch = source[source.index("if USE_BYOD:\n") : source.index("train_records, val_records, test_records = splits")]
+    caught = re.findall(r"^\s*except (.+?)(?: as \w+)?:", branch, flags=re.M)
+    assert caught == ["ImportError", "(OSError, zipfile.BadZipFile)", "BYODRefusal", "ValueError", "ValueError"], caught
+    assert "        try:\n            records = load_byod_dataset(byod_zip)\n        except (OSError, zipfile.BadZipFile) as exc:\n" in branch
+
+
+def test_a_corrupt_zip_is_still_one_refused_line(cells, tmp_path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "google.colab", None)
+    buffer = io.BytesIO()
+    with zipfile.ZipFile(buffer, "w", zipfile.ZIP_STORED) as archive:
+        archive.writestr("labels.csv", "x" * 64)
+    data = bytearray(buffer.getvalue())
+    data[data.index(b"x" * 64)] = ord("y")  # the stored bytes no longer match their CRC-32
+    (tmp_path / "bad.zip").write_bytes(bytes(data))
+    _refused(cells, tmp_path, monkeypatch, str(tmp_path / "bad.zip"), "bad.zip", "the dataset cannot be read (BadZipFile: Bad CRC-32")
+
+
+def test_an_unreadable_dataset_is_still_one_refused_line(cells, tmp_path, monkeypatch):
+    monkeypatch.setitem(sys.modules, "google.colab", None)
+    data = _zip(tmp_path / "mine.zip", {"labels.csv": "id,file,label\n"})
+    ns = _namespace(tmp_path, monkeypatch)
+
+    def unreadable(_path):
+        raise PermissionError(13, "Permission denied", str(_path))
+
+    ns["load_byod_dataset"] = unreadable
+    with pytest.raises(ValueError) as caught:
+        exec(compile(_cell_code(cells, str(data)), "<section 4>", "exec"), ns)
+    _one_line(caught.value, "mine.zip", "the dataset cannot be read (PermissionError: ")
+
+
+@pytest.mark.parametrize("where", ["split_dataset", "validate_dataset"])
+@pytest.mark.parametrize("error", [TypeError("internal helper bug"), KeyError("internal key"), OSError("internal I/O bug")], ids=["TypeError", "KeyError", "OSError"])
+def test_an_internal_error_after_the_loader_keeps_its_traceback(cells, tmp_path, monkeypatch, error, where):
+    import traceback
+
+    monkeypatch.setitem(sys.modules, "google.colab", None)
+    data = _zip(tmp_path / "mine.zip", {"labels.csv": "id,file,label\n"})
+    ns = _namespace(tmp_path, monkeypatch)
+    records = [{"id": f"r{i}", "image": Image.open(io.BytesIO(_png(i))).convert("RGB"), "label": "a" if i % 2 else "b"} for i in range(4)]
+    ns["load_byod_dataset"] = lambda _path: records
+
+    def broken(*args, **kwargs):
+        if where == "validate_dataset" and "min_records" not in kwargs:
+            return sm.validate_dataset(*args, **kwargs)
+        raise error
+
+    if where == "validate_dataset":
+        ns["split_dataset"] = lambda recs, **_kwargs: {"train": recs, "validation": recs, "test": recs}
+    ns[where] = broken
+    with pytest.raises(type(error)) as caught:
+        exec(compile(_cell_code(cells, str(data)), "<section 4>", "exec"), ns)
+    assert caught.value is error and not getattr(caught.value, "dimer_refusal", False)
+    rendered = "".join(traceback.format_exception(caught.value))
+    assert rendered.startswith("Traceback") and "broken" in rendered and "Refused:" not in rendered
+    assert ns["dataset_manifests"] == "old" and (tmp_path / "outputs" / f"{STEM}_result.json").exists()  # nothing is cleared
