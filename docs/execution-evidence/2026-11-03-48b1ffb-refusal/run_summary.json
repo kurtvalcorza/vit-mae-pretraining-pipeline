@@ -1,0 +1,74 @@
+{
+  "repo": "vit-mae-pretraining-pipeline",
+  "sha": "48b1ffb3c00f51c35b3ffe2a5ca903d21c2fb48c",
+  "notebook": "tutorials/vit_mae_pretraining_colab.ipynb",
+  "blob": "43e013ae77addae9eecf3d999b1c72d4a634971d",
+  "gpu": "T4",
+  "session": "suite-vit-48b1ffb-3ec0",
+  "started_utc": "2026-11-03T13:44:48+00:00",
+  "runner": "Colab CLI `colab exec -f` on a fresh session (not a browser Run all)",
+  "overrides": [
+    {
+      "name": "USE_BYOD",
+      "from": "False",
+      "to": "True"
+    },
+    {
+      "name": "BYOD_PATH",
+      "from": "''",
+      "to": "'/etc'"
+    }
+  ],
+  "run_copy_blob": "aa8490053d028e65f3e1a5233b3fe4b4327601ce",
+  "run_copy_sha256": "60623bfc8d0f63a9e2902c521e6ebb247d2f26a772931b9f32953df7c571f073",
+  "run_copy_note": "refusal run: the run copy is the committed notebook with the listed assignment overrides, cut immediately after the refusal cell and re-serialised (nbformat layout); input_unchanged compares against that copy",
+  "truncated_after_cell": "vit_mae_pretraining-22",
+  "refusal_cell_ref": "vit_mae_pretraining-22",
+  "refusal_cell_index": 10,
+  "cells_dropped": 20,
+  "code_cells_dropped": 6,
+  "original_sha256": "f80ff74aeba76d981b80b4ea699805980e3f22b70f2fecf33ff22ef686d03975",
+  "status": "[suite-vit-48b1ffb-3ec0] gpu-t4-s-usw1b3-3gllys4u67vyl | Hardware: T4 | Shape: Standard | Variant: GPU | Status: IDLE",
+  "exec_exit_code": 0,
+  "stopped": true,
+  "stop_verified": true,
+  "wall_s": 121.7,
+  "input_unchanged": true,
+  "executed_file": "vit_mae_pretraining_colab_48b1ffb_colab-cli-t4_output.ipynb",
+  "log_cells": [
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10
+  ],
+  "log_total": 10,
+  "code_cells": 10,
+  "executed_cells": 4,
+  "errors": [
+    {
+      "cell": "vit_mae_pretraining-22",
+      "ename": "IsolatedCellRefusal",
+      "evalue": "etc: BYOD folder must contain labels.csv; fix the input and run this cell again (the earlier results of this session were removed)."
+    }
+  ],
+  "execution_counts": [],
+  "sequential": null,
+  "executed_sha256": "1218d48ecafbee8c1c772b399804d117cfad463ea886d99816befc5b78ad37d1",
+  "log_sequential_complete": true,
+  "mode": "expect_refusal",
+  "refusal_line": "Refused: etc: BYOD folder must contain labels.csv; fix the input and run this cell again (the earlier results of this session were removed).",
+  "halting_cell_index": 10,
+  "halting_cell_id": "vit_mae_pretraining-22",
+  "error_cells": [
+    10
+  ],
+  "refusal_fail_reasons": [],
+  "refusal_ok": true,
+  "verdict": "PASS"
+}
